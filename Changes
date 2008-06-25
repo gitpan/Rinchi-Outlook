@@ -1,0 +1,6 @@
+Revision history for Perl extension Rinchi::Outlook.
+
+0.01  Sun Jun 22 20:47:34 2008
+	- original version; created by h2xs 1.23 with options
+		-A -X -n Rinchi::Outlook
+
