@@ -1,16 +1,10 @@
-Rinchi-Outlook version 0.01
+Rinchi-Outlook version 0.02
 ===========================
 
-The README is used to introduce the module and provide instructions on
-how to install the module, any machine dependencies it may have (for
-example C compilers and installed libraries) and any other information
-that should be provided before the module is installed.
-
-A README file is required for CPAN modules since CPAN extracts the
-README file from a module distribution so that people browsing the
-archive can use it get an idea of the modules uses. It is usually a
-good idea to provide version information here so that people can
-decide whether fixes for the module are worth downloading.
+This package provides the means to persist Microsoft Outlook® objects as XML. This module should 
+run on any platform. The first of the two sample scripts accesses Outlook using Win32::OLE which
+is only available on a Windows box.  Once the desired objects have been persisted, they become platform
+independent.
 
 INSTALLATION
 
@@ -25,11 +19,20 @@ DEPENDENCIES
 
 This module requires these other modules and libraries:
 
-  blah blah blah
+  Carp
+  Class::ISA
+  XML::DOM
+  XML::Parser
+  
+These additional modules are used by the samples shown in the synopsis:
+
+  Win32::OLE
+  Win32::OLE::Const
+  Win32::OLE::NLS
+  Digest::MD5
+
 
 COPYRIGHT AND LICENCE
-
-Put the correct copyright and licence information here.
 
 Copyright (C) 2008 by Brian M. Ames
 

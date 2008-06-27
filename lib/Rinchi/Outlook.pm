@@ -12,11 +12,11 @@ our @ISA = qw();
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-our $VERSION = 0.01;
+our $VERSION = 0.02;
 
 =head1 NAME
 
-Rinchi::Outlook - Module for representing Microsoft Outlook&#174; 11.0 Object Library objects.
+Rinchi::Outlook - A module for representing Microsoft Outlook® 11.0 Object Library objects.
 
 =head1 SYNOPSIS
 
@@ -24,240 +24,240 @@ The following two examples show the use of this module to save Personal Folders
 to an XML file with the attachments saved and duplicate attachments eliminated, 
 and the preparation of and index of the saved attachments. 
 
-use strict;
-use Win32::OLE qw(in with);
-use Win32::OLE::Const 'Microsoft Outlook 11.0 Object Library';
-use Win32::OLE::NLS qw(:LOCALE :DATE);
-use Rinchi::Outlook;
-use Digest::MD5; #  qw(md5 md5_hex md5_base64);
-
-my $document;
-my @attachments;
-my %fingerprints;
-
-#===============================================================================
-sub get_uuid() {
-# ToDo: Add routine to generate or fetch a UUID here.
-  return $uuid;
-}
-
-#===============================================================================
-sub add_attachments($$) {
-  my ($Item,$item) = @_;
-  my $count = $Item->Attachments->{'Count'};
-  foreach my $index (1..$count) {
-    my $Attachment = $Item->Attachments($index);
-    my $attachment = $document->createElement(Rinchi::Outlook::Attachment::TAG_NAME);
-    $attachment->Class($Attachment->{'Class'});
-    $attachment->DisplayName($Attachment->{'DisplayName'});
-    my $filename = $Attachment->{'FileName'};
-    my $ext;
-    $ext = $1 if($filename =~ /(\.[0-9A-Za-z]+)$/);
-    my $uuid = get_uuid();
-    my $path="C:/mail/attachment/$uuid$ext";
-    $attachment->FileName($filename);
-    $attachment->Index($Attachment->{'Index'});
-    $attachment->PathName($path);
-    $attachment->Position($Attachment->{'Position'});
-    $attachment->Type($Attachment->{'Type'});
-    $attachment->xmi_id($uuid);
-    $item->Attachments->appendChild($attachment);
-    $Attachment->SaveAsFile($path);
-    push @attachments,$attachment;
-    print "Saving attachment \'$filename\' as \'$path\'\n";
-  }
-}
-
-#===============================================================================
-sub add_items($$) {
-  my ($Folder,$folder) = @_;
-  my $count = $Folder->Items->{'Count'};
-  foreach my $index (1..$count) {
-    my $Item = $Folder->Items($index);
-    my $class = $Item->{'Class'};
-    my $item;
-    if ($class == Rinchi::Outlook::OlObjectClass::olMail) {
-#common
-      $item = $document->createElement(Rinchi::Outlook::MailItem::TAG_NAME);
-      $item->BillingInformation($Item->{'BillingInformation'}) if ($Item->{'BillingInformation'});
-      $item->Companies($Item->{'Companies'}) if ($Item->{'Companies'});
-      $item->ConversationIndex($Item->{'ConversationIndex'}) if ($Item->{'ConversationIndex'});
-      $item->ConversationTopic($Item->{'ConversationTopic'}) if ($Item->{'ConversationTopic'});
-      $item->Importance($Item->{'Importance'});
-      $item->Mileage($Item->{'Mileage'}) if ($Item->{'Mileage'});
-      $item->NoAging('true') if ($Item->{'NoAging'});
-      $item->OutlookInternalVersion($Item->{'OutlookInternalVersion'});
-      $item->OutlookVersion($Item->{'OutlookVersion'});
-      $item->Sensitivity($Item->{'Sensitivity'});
-      $item->UnRead('true') if ($Item->{'UnRead'});
-#specific
-      $item->AlternateRecipientAllowed('true') if($Item->{'AlternateRecipientAllowed'});
-      $item->AutoForwarded('true') if ($Item->{'AutoForwarded'});
-      $item->BCC($Item->{'BCC'}) if ($Item->{'BCC'});
-      $item->BodyFormat($Item->{'BodyFormat'});
-      $item->CC($Item->{'CC'}) if ($Item->{'CC'});
-      $item->DeferredDeliveryTime($Item->{'DeferredDeliveryTime'}->Date(DATE_LONGDATE)) unless(${$Item->{'DeferredDeliveryTime'}} == 39679620);
-      $item->DeleteAfterSubmit('true') if ($Item->{'DeleteAfterSubmit'});
-      $item->EnableSharedAttachments('true') if ($Item->{'EnableSharedAttachments'});
-      $item->ExpiryTime($Item->{'ExpiryTime'}->Date(DATE_LONGDATE)) unless(${$Item->{'ExpiryTime'}} == 39679620);
-      $item->FlagDueBy($Item->{'FlagDueBy'}->Date(DATE_LONGDATE)) unless(${$Item->{'FlagDueBy'}} == 39679620);
-      $item->FlagIcon($Item->{'FlagIcon'}) if ($Item->{'FlagIcon'});
-      $item->FlagRequest($Item->{'FlagRequest'}) if ($Item->{'FlagRequest'});
-      $item->FlagStatus($Item->{'FlagStatus'}) if ($Item->{'FlagStatus'});
-      $item->HasCoverSheet('true') if ($Item->{'HasCoverSheet'});
-      $item->InternetCodepage($Item->{'InternetCodepage'});
-      $item->IsIPFax('true') if ($Item->{'IsIPFax'});
-      $item->OriginatorDeliveryReportRequested('true') if($Item->{'OriginatorDeliveryReportRequested'});
-      $item->Permission($Item->{'Permission'});
-      $item->PermissionService($Item->{'PermissionService'});
-      $item->ReadReceiptRequested('true') if ($Item->{'ReadReceiptRequested'});
-      $item->ReceivedByName($Item->{'ReceivedByName'});
-      $item->ReceivedOnBehalfOfName($Item->{'ReceivedOnBehalfOfName'});
-      $item->ReceivedTime($Item->{'ReceivedTime'}->Date(DATE_LONGDATE)) unless(${$Item->{'ReceivedTime'}} == 39679620);
-      $item->RecipientReassignmentProhibited('true') if($Item->{'RecipientReassignmentProhibited'});
-      $item->ReminderOverrideDefault('true') if($Item->{'ReminderOverrideDefault'});
-      $item->ReminderPlaySound('true') if($Item->{'ReminderPlaySound'});
-      $item->ReminderSet('true') if($Item->{'ReminderSet'});
-      $item->ReminderSoundFile($Item->{'ReminderSoundFile'}) if($Item->{'ReminderSoundFile'});
-      $item->ReminderTime($Item->{'ReminderTime'}->Date(DATE_LONGDATE)) unless(${$Item->{'ReminderTime'}} == 39679620);
-      $item->RemoteStatus($Item->{'RemoteStatus'});
-      $item->ReplyRecipientNames($Item->{'ReplyRecipientNames'});
-      $item->SenderEmailAddress($Item->{'SenderEmailAddress'});
-      $item->SenderEmailType($Item->{'SenderEmailType'});
-      $item->SenderName($Item->{'SenderName'});
-      $item->Sent('true') if($Item->{'Sent'});
-      $item->SentOn($Item->{'SentOn'}->Date(DATE_LONGDATE)) unless(${$Item->{'SentOn'}} == 39679620);
-      $item->SentOnBehalfOfName($Item->{'SentOnBehalfOfName'});
-      $item->Submitted('true') if($Item->{'Submitted'});
-      $item->To($Item->{'To'});
-      $item->VotingOptions($Item->{'VotingOptions'}) if ($Item->{'VotingOptions'});
-      $item->VotingResponse($Item->{'VotingResponse'}) if ($Item->{'VotingResponse'});
-      add_attachments($Item,$item) if ($Item->Attachments->{'Count'} > 0);
-    }
-    if (defined($item)) {
-      $item->Body(escape_xml($Item->{'Body'}));
-      $item->Class($Item->{'Class'});
-      $item->CreationTime($Item->{'CreationTime'}->Date(DATE_LONGDATE)) unless(${$Item->{'CreationTime'}} == 39679620);
-      $item->DownloadState($Item->{'DownloadState'});
-      $item->EntryID($Item->{'EntryID'});
-      $item->IsConflict('true') if ($Item->{'IsConflict'});
-      $item->LastModificationTime($Item->{'LastModificationTime'}->Date(DATE_LONGDATE)) unless(${$Item->{'LastModificationTime'}} == 39679620);
-      $item->MarkForDownload($Item->{'MarkForDownload'});
-      $item->MessageClass($Item->{'MessageClass'});
-      $item->Saved('true') if ($Item->{'Saved'});
-      $item->Size($Item->{'Size'});
-      $item->Subject($Item->{'Subject'});
-      $item->xmi_id(get_uuid());
-      $folder->appendChild($item);
-    }
-  }
-}
-
-#===============================================================================
-sub add_folders($$) {
-  my ($Folders,$folders) = @_;
-  my $count = $Folders->{'Count'};
-  foreach my $index (1..$count) {
-    my $Folder = $Folders->Item($index);
-    my $folder = $document->createElement(Rinchi::Outlook::MAPIFolder::TAG_NAME);
-    $folder->AddressBookName($Folder->{'AddressBookName'});
-    $folder->Description($Folder->{'Description'});
-    $folder->FolderPath($Folder->{'FolderPath'});
-    $folder->FullFolderPath($Folder->{'FullFolderPath'});
-    $folder->Name($Folder->{'Name'});
-    $folder->DefaultItemType($Folder->{'DefaultItemType'});
-    $folder->Class(Rinchi::Outlook::OlObjectClass::olFolder);
-    $folder->xmi_id(get_uuid());
-    $folders->appendChild($folder);
-    add_folders($Folder->Folders,$folder->Folders) if($Folder->Folders->{'Count'} > 0);
-    add_items($Folder,$folder) if($Folder->Items->{'Count'} > 0);
-  }
-}
-
-#===============================================================================
-sub top_folders($$) {
-  my ($Folders,$folders) = @_;
-  my $count = $Folders->{'Count'};
-  foreach my $index (1..$count) {
-    my $Folder = $Folders->Item($index);
-    my $folder = $document->createElement(Rinchi::Outlook::MAPIFolder::TAG_NAME);
-    my $name = $Folder->{'Name'};
-    $folder->AddressBookName($Folder->{'AddressBookName'});
-    $folder->Description($Folder->{'Description'});
-    $folder->FolderPath($Folder->{'FolderPath'});
-    $folder->FullFolderPath($Folder->{'FullFolderPath'});
-    $folder->Name($name);
-    $folder->DefaultItemType($Folder->{'DefaultItemType'});
-    $folder->Class(Rinchi::Outlook::OlObjectClass::olFolder);
-    $folder->xmi_id(get_uuid());
-    $folders->appendChild($folder);
-    add_folders($Folder->Folders,$folder->Folders) if($Folder->Folders->{'Count'} > 0 and $name eq 'Personal Folders');
-  }
-}
-
-#===============================================================================
-my $Outlook;
-eval {
-  $Outlook = Win32::OLE->GetActiveObject('Outlook.Application')
-};
-if ($@ || !defined($Outlook)) {
-  $Outlook = Win32::OLE->new('Outlook.Application', sub {$_[0]->Quit;})
-    or return undef;
-}
-my $Namespace = $Outlook->GetNameSpace("MAPI") or return undef;
-
-$document = Rinchi::Outlook::Document->new(Rinchi::Outlook::NameSpace::TAG_NAME);
-my $namespace = $document->getDocumentElement();
-$namespace->xmi_id(get_uuid);
-
-top_folders($Namespace->Folders,$namespace->Folders);
-
-my $md5 = Digest::MD5->new();
-foreach my $attachment(@attachments) {
-  my $path = $attachment->PathName(); 
-  my $ferr = 0;
-  open FH,'<',$path or $ferr = 1;
-  unless ($ferr > 0) {
-    binmode(FH);
-    $md5->new();
-    $md5->addfile(*FH);
-    my $fingerprint = $md5->hexdigest();
-    close FH;
-    $attachment->MD5($fingerprint);
-    if(exists($fingerprints{$fingerprint})) {
-      $attachment->PathName($fingerprints{$fingerprint});
-      unlink $path;
-      print "Duplicate file \'$path\' deleted.\n";
-    } else {
-      $fingerprints{$fingerprint} = $path;
-    }
-  }
-}
-
-$document->printToFile('C:/mail/personal_folders.xml');
-
-#========================================
-
-use strict;
-use Rinchi::Outlook;
-
-my $source = 'C:/mail/personal_folders.xml';
-
-my $document = Rinchi::Outlook->parsefile($source);
-
-my @attachments = $document->getElementsByTagName('attachment');
-
-open HTML,'>','C:/mail/attachment/index.html';
-print HTML "<html>\n  <head>\n    <title>Index of Attachments</title>\n  </head>\n  <body>\n    <h1>Index of Attachments</h1>\n    <table border=\"1\" cellspacing=\"0\">\n";
-print HTML "      <tr><th>Display Name</th><th>Subject</th><th>Sender</th><th>Path Name</th><th>FileName</th></tr>\n";
-foreach my $attachment (@attachments) {
-  my $link = $attachment->PathName;
-  my @l = split('\/',$link);
-  $link = pop @l;
-  printf HTML "      <tr><td><a href=\"%s\">%s</a></td><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>\n",$link,$attachment->DisplayName,$attachment->getParentNode->getParentNode->Subject,$attachment->getParentNode->getParentNode->SenderName,$attachment->PathName,$attachment->FileName;
-}
-print HTML "    </table>\n  </body>\n</html>\n";
-close HTML;
+ use strict;
+ use Win32::OLE qw(in with);
+ use Win32::OLE::Const 'Microsoft Outlook 11.0 Object Library';
+ use Win32::OLE::NLS qw(:LOCALE :DATE);
+ use Rinchi::Outlook;
+ use Digest::MD5; #  qw(md5 md5_hex md5_base64);
+ 
+ my $document;
+ my @attachments;
+ my %fingerprints;
+ 
+ #===============================================================================
+ sub get_uuid() {
+ # ToDo: Add routine to generate or fetch a UUID here.
+   return $uuid;
+ }
+ 
+ #===============================================================================
+ sub add_attachments($$) {
+   my ($Item,$item) = @_;
+   my $count = $Item->Attachments->{'Count'};
+   foreach my $index (1..$count) {
+     my $Attachment = $Item->Attachments($index);
+     my $attachment = $document->createElement(Rinchi::Outlook::Attachment::TAG_NAME);
+     $attachment->Class($Attachment->{'Class'});
+     $attachment->DisplayName($Attachment->{'DisplayName'});
+     my $filename = $Attachment->{'FileName'};
+     my $ext;
+     $ext = $1 if($filename =~ /(\.[0-9A-Za-z]+)$/);
+     my $uuid = get_uuid();
+     my $path="C:/mail/attachment/$uuid$ext";
+     $attachment->FileName($filename);
+     $attachment->Index($Attachment->{'Index'});
+     $attachment->PathName($path);
+     $attachment->Position($Attachment->{'Position'});
+     $attachment->Type($Attachment->{'Type'});
+     $attachment->xmi_id($uuid);
+     $item->Attachments->appendChild($attachment);
+     $Attachment->SaveAsFile($path);
+     push @attachments,$attachment;
+     print "Saving attachment \'$filename\' as \'$path\'\n";
+   }
+ }
+ 
+ #===============================================================================
+ sub add_items($$) {
+   my ($Folder,$folder) = @_;
+   my $count = $Folder->Items->{'Count'};
+   foreach my $index (1..$count) {
+     my $Item = $Folder->Items($index);
+     my $class = $Item->{'Class'};
+     my $item;
+     if ($class == Rinchi::Outlook::OlObjectClass::olMail) {
+ #common
+       $item = $document->createElement(Rinchi::Outlook::MailItem::TAG_NAME);
+       $item->BillingInformation($Item->{'BillingInformation'}) if ($Item->{'BillingInformation'});
+       $item->Companies($Item->{'Companies'}) if ($Item->{'Companies'});
+       $item->ConversationIndex($Item->{'ConversationIndex'}) if ($Item->{'ConversationIndex'});
+       $item->ConversationTopic($Item->{'ConversationTopic'}) if ($Item->{'ConversationTopic'});
+       $item->Importance($Item->{'Importance'});
+       $item->Mileage($Item->{'Mileage'}) if ($Item->{'Mileage'});
+       $item->NoAging('true') if ($Item->{'NoAging'});
+       $item->OutlookInternalVersion($Item->{'OutlookInternalVersion'});
+       $item->OutlookVersion($Item->{'OutlookVersion'});
+       $item->Sensitivity($Item->{'Sensitivity'});
+       $item->UnRead('true') if ($Item->{'UnRead'});
+ #specific to MailItem
+       $item->AlternateRecipientAllowed('true') if($Item->{'AlternateRecipientAllowed'});
+       $item->AutoForwarded('true') if ($Item->{'AutoForwarded'});
+       $item->BCC($Item->{'BCC'}) if ($Item->{'BCC'});
+       $item->BodyFormat($Item->{'BodyFormat'});
+       $item->CC($Item->{'CC'}) if ($Item->{'CC'});
+       $item->DeferredDeliveryTime($Item->{'DeferredDeliveryTime'}->Date(DATE_LONGDATE)) unless(${$Item->{'DeferredDeliveryTime'}} == 39679620);
+       $item->DeleteAfterSubmit('true') if ($Item->{'DeleteAfterSubmit'});
+       $item->EnableSharedAttachments('true') if ($Item->{'EnableSharedAttachments'});
+       $item->ExpiryTime($Item->{'ExpiryTime'}->Date(DATE_LONGDATE)) unless(${$Item->{'ExpiryTime'}} == 39679620);
+       $item->FlagDueBy($Item->{'FlagDueBy'}->Date(DATE_LONGDATE)) unless(${$Item->{'FlagDueBy'}} == 39679620);
+       $item->FlagIcon($Item->{'FlagIcon'}) if ($Item->{'FlagIcon'});
+       $item->FlagRequest($Item->{'FlagRequest'}) if ($Item->{'FlagRequest'});
+       $item->FlagStatus($Item->{'FlagStatus'}) if ($Item->{'FlagStatus'});
+       $item->HasCoverSheet('true') if ($Item->{'HasCoverSheet'});
+       $item->InternetCodepage($Item->{'InternetCodepage'});
+       $item->IsIPFax('true') if ($Item->{'IsIPFax'});
+       $item->OriginatorDeliveryReportRequested('true') if($Item->{'OriginatorDeliveryReportRequested'});
+       $item->Permission($Item->{'Permission'});
+       $item->PermissionService($Item->{'PermissionService'});
+       $item->ReadReceiptRequested('true') if ($Item->{'ReadReceiptRequested'});
+       $item->ReceivedByName($Item->{'ReceivedByName'});
+       $item->ReceivedOnBehalfOfName($Item->{'ReceivedOnBehalfOfName'});
+       $item->ReceivedTime($Item->{'ReceivedTime'}->Date(DATE_LONGDATE)) unless(${$Item->{'ReceivedTime'}} == 39679620);
+       $item->RecipientReassignmentProhibited('true') if($Item->{'RecipientReassignmentProhibited'});
+       $item->ReminderOverrideDefault('true') if($Item->{'ReminderOverrideDefault'});
+       $item->ReminderPlaySound('true') if($Item->{'ReminderPlaySound'});
+       $item->ReminderSet('true') if($Item->{'ReminderSet'});
+       $item->ReminderSoundFile($Item->{'ReminderSoundFile'}) if($Item->{'ReminderSoundFile'});
+       $item->ReminderTime($Item->{'ReminderTime'}->Date(DATE_LONGDATE)) unless(${$Item->{'ReminderTime'}} == 39679620);
+       $item->RemoteStatus($Item->{'RemoteStatus'});
+       $item->ReplyRecipientNames($Item->{'ReplyRecipientNames'});
+       $item->SenderEmailAddress($Item->{'SenderEmailAddress'});
+       $item->SenderEmailType($Item->{'SenderEmailType'});
+       $item->SenderName($Item->{'SenderName'});
+       $item->Sent('true') if($Item->{'Sent'});
+       $item->SentOn($Item->{'SentOn'}->Date(DATE_LONGDATE)) unless(${$Item->{'SentOn'}} == 39679620);
+       $item->SentOnBehalfOfName($Item->{'SentOnBehalfOfName'});
+       $item->Submitted('true') if($Item->{'Submitted'});
+       $item->To($Item->{'To'});
+       $item->VotingOptions($Item->{'VotingOptions'}) if ($Item->{'VotingOptions'});
+       $item->VotingResponse($Item->{'VotingResponse'}) if ($Item->{'VotingResponse'});
+       add_attachments($Item,$item) if ($Item->Attachments->{'Count'} > 0);
+     }
+     if (defined($item)) {
+       $item->Body(escape_xml($Item->{'Body'}));
+       $item->Class($Item->{'Class'});
+       $item->CreationTime($Item->{'CreationTime'}->Date(DATE_LONGDATE)) unless(${$Item->{'CreationTime'}} == 39679620);
+       $item->DownloadState($Item->{'DownloadState'});
+       $item->EntryID($Item->{'EntryID'});
+       $item->IsConflict('true') if ($Item->{'IsConflict'});
+       $item->LastModificationTime($Item->{'LastModificationTime'}->Date(DATE_LONGDATE)) unless(${$Item->{'LastModificationTime'}} == 39679620);
+       $item->MarkForDownload($Item->{'MarkForDownload'});
+       $item->MessageClass($Item->{'MessageClass'});
+       $item->Saved('true') if ($Item->{'Saved'});
+       $item->Size($Item->{'Size'});
+       $item->Subject($Item->{'Subject'});
+       $item->xmi_id(get_uuid());
+       $folder->appendChild($item);
+     }
+   }
+ }
+ 
+ #===============================================================================
+ sub add_folders($$) {
+   my ($Folders,$folders) = @_;
+   my $count = $Folders->{'Count'};
+   foreach my $index (1..$count) {
+     my $Folder = $Folders->Item($index);
+     my $folder = $document->createElement(Rinchi::Outlook::MAPIFolder::TAG_NAME);
+     $folder->AddressBookName($Folder->{'AddressBookName'});
+     $folder->Description($Folder->{'Description'});
+     $folder->FolderPath($Folder->{'FolderPath'});
+     $folder->FullFolderPath($Folder->{'FullFolderPath'});
+     $folder->Name($Folder->{'Name'});
+     $folder->DefaultItemType($Folder->{'DefaultItemType'});
+     $folder->Class(Rinchi::Outlook::OlObjectClass::olFolder);
+     $folder->xmi_id(get_uuid());
+     $folders->appendChild($folder);
+     add_folders($Folder->Folders,$folder->Folders) if($Folder->Folders->{'Count'} > 0);
+     add_items($Folder,$folder) if($Folder->Items->{'Count'} > 0);
+   }
+ }
+ 
+ #===============================================================================
+ sub top_folders($$) {
+   my ($Folders,$folders) = @_;
+   my $count = $Folders->{'Count'};
+   foreach my $index (1..$count) {
+     my $Folder = $Folders->Item($index);
+     my $folder = $document->createElement(Rinchi::Outlook::MAPIFolder::TAG_NAME);
+     my $name = $Folder->{'Name'};
+     $folder->AddressBookName($Folder->{'AddressBookName'});
+     $folder->Description($Folder->{'Description'});
+     $folder->FolderPath($Folder->{'FolderPath'});
+     $folder->FullFolderPath($Folder->{'FullFolderPath'});
+     $folder->Name($name);
+     $folder->DefaultItemType($Folder->{'DefaultItemType'});
+     $folder->Class(Rinchi::Outlook::OlObjectClass::olFolder);
+     $folder->xmi_id(get_uuid());
+     $folders->appendChild($folder);
+     add_folders($Folder->Folders,$folder->Folders) if($Folder->Folders->{'Count'} > 0 and $name eq 'Personal Folders');
+   }
+ }
+ 
+ #===============================================================================
+ my $Outlook;
+ eval {
+   $Outlook = Win32::OLE->GetActiveObject('Outlook.Application')
+ };
+ if ($@ || !defined($Outlook)) {
+   $Outlook = Win32::OLE->new('Outlook.Application', sub {$_[0]->Quit;})
+     or return undef;
+ }
+ my $Namespace = $Outlook->GetNameSpace("MAPI") or return undef;
+ 
+ $document = Rinchi::Outlook::Document->new(Rinchi::Outlook::NameSpace::TAG_NAME);
+ my $namespace = $document->getDocumentElement();
+ $namespace->xmi_id(get_uuid);
+ 
+ top_folders($Namespace->Folders,$namespace->Folders);
+ 
+ my $md5 = Digest::MD5->new();
+ foreach my $attachment(@attachments) {
+   my $path = $attachment->PathName(); 
+   my $ferr = 0;
+   open FH,'<',$path or $ferr = 1;
+   unless ($ferr > 0) {
+     binmode(FH);
+     $md5->new();
+     $md5->addfile(*FH);
+     my $fingerprint = $md5->hexdigest();
+     close FH;
+     $attachment->MD5($fingerprint);
+     if(exists($fingerprints{$fingerprint})) {
+       $attachment->PathName($fingerprints{$fingerprint});
+       unlink $path;
+       print "Duplicate file \'$path\' deleted.\n";
+     } else {
+       $fingerprints{$fingerprint} = $path;
+     }
+   }
+ }
+ 
+ $document->printToFile('C:/mail/personal_folders.xml');
+ 
+ #========================================
+ 
+ use strict;
+ use Rinchi::Outlook;
+ 
+ my $source = 'C:/mail/personal_folders.xml';
+ 
+ my $document = Rinchi::Outlook->parsefile($source);
+ 
+ my @attachments = $document->getElementsByTagName('attachment');
+ 
+ open HTML,'>','C:/mail/attachment/index.html';
+ print HTML "<html>\n  <head>\n    <title>Index of Attachments</title>\n  </head>\n  <body>\n    <h1>Index of Attachments</h1>\n    <table border=\"1\" cellspacing=\"0\">\n";
+ print HTML "      <tr><th>Display Name</th><th>Subject</th><th>Sender</th><th>Path Name</th><th>FileName</th></tr>\n";
+ foreach my $attachment (@attachments) {
+   my $link = $attachment->PathName;
+   my @l = split('\/',$link);
+   $link = pop @l;
+   printf HTML "      <tr><td><a href=\"%s\">%s</a></td><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>\n",$link,$attachment->DisplayName,$attachment->getParentNode->getParentNode->Subject,$attachment->getParentNode->getParentNode->SenderName,$attachment->PathName,$attachment->FileName;
+ }
+ print HTML "    </table>\n  </body>\n</html>\n";
+ close HTML;
 
 =head1 DESCRIPTION
 
@@ -266,6 +266,8 @@ Microsoft Outlook 11.0 Object Library
 =head2 EXPORT
 
 None by default.
+
+=head1 METHODS
 
 =cut
 
@@ -449,7 +451,7 @@ sub handle_xml_decl() {
 
 #=================================================================
 
-=item $Document = Rinchi::Outlook->parsefile($path);
+=head2 $Document = Rinchi::Outlook->parsefile($path);
 
 Calls XML::Parser->parsefile with the given path and the Rinchi::Outlook 
 handlers.  A tree of DOM objects is returned.
@@ -511,18 +513,91 @@ our @ISA = qw(XML::DOM::Document);
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
-
-Rinchi::Outlook::Document - Module for representing Document objects.
-
 =head1 DESCRIPTION of Document
 
+Rinchi::Outlook::Document subclasses XML::DOM::Document and is used for creating 
+Rinchi::Outlook::* objects based on the following tag to class mapping.
+
+  'action'                            => 'Rinchi::Outlook::Action',
+  'actions'                           => 'Rinchi::Outlook::Actions',
+  'address-entries'                   => 'Rinchi::Outlook::AddressEntries',
+  'address-entry'                     => 'Rinchi::Outlook::AddressEntry',
+  'address-list'                      => 'Rinchi::Outlook::AddressList',
+  'address-lists'                     => 'Rinchi::Outlook::AddressLists',
+  'application'                       => 'Rinchi::Outlook::Application',
+  'appointment-item'                  => 'Rinchi::Outlook::AppointmentItem',
+  'attachment'                        => 'Rinchi::Outlook::Attachment',
+  'attachments'                       => 'Rinchi::Outlook::Attachments',
+  'Body'                              => 'Rinchi::Outlook::Body',
+  'conflict'                          => 'Rinchi::Outlook::Conflict',
+  'conflicts'                         => 'Rinchi::Outlook::Conflicts',
+  'contact-item'                      => 'Rinchi::Outlook::ContactItem',
+  'dist-list-item'                    => 'Rinchi::Outlook::DistListItem',
+  'document-item'                     => 'Rinchi::Outlook::DocumentItem',
+  'exception'                         => 'Rinchi::Outlook::Exception',
+  'exceptions'                        => 'Rinchi::Outlook::Exceptions',
+  'explorer'                          => 'Rinchi::Outlook::Explorer',
+  'explorers'                         => 'Rinchi::Outlook::Explorers',
+  'folders'                           => 'Rinchi::Outlook::Folders',
+  'form-description'                  => 'Rinchi::Outlook::FormDescription',
+  'inspector'                         => 'Rinchi::Outlook::Inspector',
+  'inspectors'                        => 'Rinchi::Outlook::Inspectors',
+  'item-properties'                   => 'Rinchi::Outlook::ItemProperties',
+  'item-property'                     => 'Rinchi::Outlook::ItemProperty',
+  'items'                             => 'Rinchi::Outlook::Items',
+  'journal-item'                      => 'Rinchi::Outlook::JournalItem',
+  'link'                              => 'Rinchi::Outlook::Link',
+  'links'                             => 'Rinchi::Outlook::Links',
+  'mail-item'                         => 'Rinchi::Outlook::MailItem',
+  'mapi-folder'                       => 'Rinchi::Outlook::MAPIFolder',
+  'meeting-item'                      => 'Rinchi::Outlook::MeetingItem',
+  'name-space'                        => 'Rinchi::Outlook::NameSpace',
+  'note-item'                         => 'Rinchi::Outlook::NoteItem',
+  'outlook-bar-group'                 => 'Rinchi::Outlook::OutlookBarGroup',
+  'outlook-bar-groups'                => 'Rinchi::Outlook::OutlookBarGroups',
+  'outlook-bar-pane'                  => 'Rinchi::Outlook::OutlookBarPane',
+  'outlook-bar-shortcut'              => 'Rinchi::Outlook::OutlookBarShortcut',
+  'outlook-bar-shortcuts'             => 'Rinchi::Outlook::OutlookBarShortcuts',
+  'outlook-bar-storage'               => 'Rinchi::Outlook::OutlookBarStorage',
+  'outlook-base-item-object'          => 'Rinchi::Outlook::OutlookBaseItemObject',
+  'outlook-collection'                => 'Rinchi::Outlook::OutlookCollection',
+  'outlook-entry'                     => 'Rinchi::Outlook::OutlookEntry',
+  'outlook-item-object'               => 'Rinchi::Outlook::OutlookItemObject',
+  'outlook-named-entry'               => 'Rinchi::Outlook::OutlookNamedEntry',
+  'pages'                             => 'Rinchi::Outlook::Pages',
+  'panes'                             => 'Rinchi::Outlook::Panes',
+  'post-item'                         => 'Rinchi::Outlook::PostItem',
+  'property-pages'                    => 'Rinchi::Outlook::PropertyPages',
+  'property-page-site'                => 'Rinchi::Outlook::PropertyPageSite',
+  'recipient'                         => 'Rinchi::Outlook::Recipient',
+  'recipients'                        => 'Rinchi::Outlook::Recipients',
+  'recurrence-pattern'                => 'Rinchi::Outlook::RecurrencePattern',
+  'reminder'                          => 'Rinchi::Outlook::Reminder',
+  'reminders'                         => 'Rinchi::Outlook::Reminders',
+  'remote-item'                       => 'Rinchi::Outlook::RemoteItem',
+  'report-item'                       => 'Rinchi::Outlook::ReportItem',
+  'results'                           => 'Rinchi::Outlook::Results',
+  'search'                            => 'Rinchi::Outlook::Search',
+  'selection'                         => 'Rinchi::Outlook::Selection',
+  'sync-object'                       => 'Rinchi::Outlook::SyncObject',
+  'sync-objects'                      => 'Rinchi::Outlook::SyncObjects',
+  'task-item'                         => 'Rinchi::Outlook::TaskItem',
+  'task-request-accept-item'          => 'Rinchi::Outlook::TaskRequestAcceptItem',
+  'task-request-decline-item'         => 'Rinchi::Outlook::TaskRequestDeclineItem',
+  'task-request-item'                 => 'Rinchi::Outlook::TaskRequestItem',
+  'task-request-update-item'          => 'Rinchi::Outlook::TaskRequestUpdateItem',
+  'user-properties'                   => 'Rinchi::Outlook::UserProperties',
+  'user-property'                     => 'Rinchi::Outlook::UserProperty',
+  'view'                              => 'Rinchi::Outlook::View',
+  'views'                             => 'Rinchi::Outlook::Views',
 
 =cut
 
 #===============================================================================
 
-=item $Object = Rinchi::Outlook::Document->new();
+=head1 METHODS for Document objects
+
+=head2 $Object = Rinchi::Outlook::Document->new();
 
 Create a new Rinchi::Outlook::Document object.
 
@@ -647,6 +722,24 @@ BEGIN
     import XML::DOM::Node qw( :Fields );
 }
 
+=head1 METHODS for Rinchi::Outlook::Element objects
+
+=cut
+
+#===============================================================================
+# Rinchi::Outlook::Element::xmi_id
+
+=head2 $value = $Object->xmi_id([$new_value]);
+
+Set or get value of the xmi_id attribute. This attribute is used to provide 
+unique object identification.
+  
+ Type: UUID
+ Lower: 0
+ Upper: 1
+
+=cut
+
 sub xmi_id() {
   my $self = shift;
   if (@_) {
@@ -655,6 +748,20 @@ sub xmi_id() {
   return $self->getAttribute('xmi.id');
 }
 
+#===============================================================================
+# Rinchi::Outlook::Element::xmi_idref
+
+=head2 $value = $Object->xmi_idref([$new_value]);
+
+Set or get value of the xmi_idref attribute.  The UUID used can reference any 
+object, including external objects.
+  
+ Type: UUID
+ Lower: 0
+ Upper: 1
+
+=cut
+
 sub xmi_idref() {
   my $self = shift;
   if (@_) {
@@ -662,6 +769,9 @@ sub xmi_idref() {
   }
   return $self->getAttribute('xmi.idref');
 }
+
+#===============================================================================
+# Rinchi::Outlook::Element::get_collection()
 
 sub get_collection() {
   my $self = shift;
@@ -677,6 +787,9 @@ sub get_collection() {
   }
   return $self->[_UserData]{'_collections'}{$name};
 }
+
+#===============================================================================
+# Rinchi::Outlook::Element::attribute_as_element()
 
 sub attribute_as_element() {
   my $self = shift;
@@ -725,32 +838,13 @@ our @ISA = qw(Rinchi::Outlook::Element Rinchi::Outlook::OutlookNamedEntry);
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of Action class
 
-Rinchi::Outlook::Action - Module for representing Action objects.
+Rinchi::Outlook::Action is used for representing Action objects. Represents a 
+specialized action (for example, the voting options response) that can be 
+executed on an item. The Action object is a member of the Actions  object.
 
-=head1 DESCRIPTION of Action
-
-  Represents a specialized action (for example, the voting options response) that can be executed on an item. The Action object is a member of the Actions  object.
-Using the Action Object
-
-Use Actions (index), where index is the name of an available action, to return a single Action object.
-
-The following Visual Basic for Applications (VBA) example uses the Reply action of a particular item to send a reply.
-
-Set myOlApp = CreateObject("Outlook.Application")
-myItem = CreateItem(olMailItem)
-Set myReply = myItem.Actions("Reply").Execute
-		
-
-The following Visual Basic for Applications example does the same thing, using a different reply style for the reply.
-
-Set myOlApp = CreateObject("Outlook.Application")
-myItem = CreateItem(olMailItem)
-myItem.Actions("Reply").ReplyStyle = _
-    olIncludeOriginalText
-Set myReply = myItem.Actions("Reply").Execute
-
+=head1 METHODS for Action objects
 
 =cut
 
@@ -764,14 +858,13 @@ Set myReply = myItem.Actions("Reply").Execute
 #===============================================================================
 # Rinchi::Outlook::Action::CopyLike
 
-=item $value = $Object->CopyLike([$new_value]);
+=head2 $value = $Object->CopyLike([$new_value]);
 
 Set or get value of the CopyLike attribute.
-
   
-Type: OlActionCopyLike
-Lower: 0
-Upper: 1
+ Type: OlActionCopyLike
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -794,14 +887,13 @@ sub CopyLike() {
 #===============================================================================
 # Rinchi::Outlook::Action::Enabled
 
-=item $value = $Object->Enabled([$new_value]);
+=head2 $value = $Object->Enabled([$new_value]);
 
 Set or get value of the Enabled attribute.
-
   
-Type: Boolean
-Lower: 0
-Upper: 1
+ Type: Boolean
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -820,14 +912,13 @@ sub Enabled() {
 #===============================================================================
 # Rinchi::Outlook::Action::MessageClass
 
-=item $value = $Object->MessageClass([$new_value]);
+=head2 $value = $Object->MessageClass([$new_value]);
 
 Set or get value of the MessageClass attribute.
-
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -842,14 +933,13 @@ sub MessageClass() {
 #===============================================================================
 # Rinchi::Outlook::Action::Prefix
 
-=item $value = $Object->Prefix([$new_value]);
+=head2 $value = $Object->Prefix([$new_value]);
 
 Set or get value of the Prefix attribute.
-
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -864,14 +954,13 @@ sub Prefix() {
 #===============================================================================
 # Rinchi::Outlook::Action::ReplyStyle
 
-=item $value = $Object->ReplyStyle([$new_value]);
+=head2 $value = $Object->ReplyStyle([$new_value]);
 
 Set or get value of the ReplyStyle attribute.
-
   
-Type: OlActionReplyStyle
-Lower: 0
-Upper: 1
+ Type: OlActionReplyStyle
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -894,14 +983,13 @@ sub ReplyStyle() {
 #===============================================================================
 # Rinchi::Outlook::Action::ResponseStyle
 
-=item $value = $Object->ResponseStyle([$new_value]);
+=head2 $value = $Object->ResponseStyle([$new_value]);
 
 Set or get value of the ResponseStyle attribute.
-
   
-Type: OlActionResponseStyle
-Lower: 0
-Upper: 1
+ Type: OlActionResponseStyle
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -924,14 +1012,13 @@ sub ResponseStyle() {
 #===============================================================================
 # Rinchi::Outlook::Action::ShowOn
 
-=item $value = $Object->ShowOn([$new_value]);
+=head2 $value = $Object->ShowOn([$new_value]);
 
 Set or get value of the ShowOn attribute.
-
   
-Type: OlActionShowOn
-Lower: 0
-Upper: 1
+ Type: OlActionShowOn
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -965,13 +1052,11 @@ our @ISA = qw(Rinchi::Outlook::Element Rinchi::Outlook::OutlookNamedEntry);
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of AddressEntry objects
 
-Rinchi::Outlook::AddressEntry - Module for representing AddressEntry objects.
+Rinchi::Outlook::AddressEntry is used for representing AddressEntry objects.
 
-=head1 DESCRIPTION of AddressEntry
-
-  
+=head1 METHODS for AddressEntry objects
 
 =cut
 
@@ -985,14 +1070,13 @@ Rinchi::Outlook::AddressEntry - Module for representing AddressEntry objects.
 #===============================================================================
 # Rinchi::Outlook::AddressEntry::Address
 
-=item $value = $Object->Address([$new_value]);
+=head2 $value = $Object->Address([$new_value]);
 
 Set or get value of the Address attribute.
-
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -1007,14 +1091,13 @@ sub Address() {
 #===============================================================================
 # Rinchi::Outlook::AddressEntry::DisplayType
 
-=item $value = $Object->DisplayType([$new_value]);
+=head2 $value = $Object->DisplayType([$new_value]);
 
 Set or get value of the DisplayType attribute.
-
   
-Type: OlDisplayType
-Lower: 0
-Upper: 1
+ Type: OlDisplayType
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -1037,14 +1120,13 @@ sub DisplayType() {
 #===============================================================================
 # Rinchi::Outlook::AddressEntry::ID
 
-=item $value = $Object->ID([$new_value]);
+=head2 $value = $Object->ID([$new_value]);
 
 Set or get value of the ID attribute.
-
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -1059,14 +1141,13 @@ sub ID() {
 #===============================================================================
 # Rinchi::Outlook::AddressEntry::Manager
 
-=item $value = $Object->Manager([$new_value]);
+=head2 $value = $Object->Manager([$new_value]);
 
 Set or get value of the Manager attribute.
-
   
-Type: AddressEntry
-Lower: 0
-Upper: 1
+ Type: AddressEntry
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -1086,14 +1167,13 @@ sub Manager() {
 #===============================================================================
 # Rinchi::Outlook::AddressEntry::Members
 
-=item $Element = $Object->Members();
+=head2 $Element = $Object->Members();
 
 Set or get value of the Members attribute.
-
   
-Type: AddressEntries
-Lower: 0
-Upper: 1
+ Type: AddressEntries
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -1105,14 +1185,13 @@ sub Members() {
 #===============================================================================
 # Rinchi::Outlook::AddressEntry::Type
 
-=item $value = $Object->Type([$new_value]);
+=head2 $value = $Object->Type([$new_value]);
 
 Set or get value of the Type attribute.
-
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -1138,13 +1217,11 @@ our @ISA = qw(Rinchi::Outlook::Element Rinchi::Outlook::OutlookNamedEntry);
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of AddressList objects
 
-Rinchi::Outlook::AddressList - Module for representing AddressList objects.
+Rinchi::Outlook::AddressList is used for representing AddressList objects.
 
-=head1 DESCRIPTION of AddressList
-
-  
+=head1 METHODS for AddressList objects
 
 =cut
 
@@ -1158,14 +1235,13 @@ Rinchi::Outlook::AddressList - Module for representing AddressList objects.
 #===============================================================================
 # Rinchi::Outlook::AddressList::AddressEntries
 
-=item $Element = $Object->AddressEntries();
+=head2 $Element = $Object->AddressEntries();
 
 Set or get value of the AddressEntries attribute.
-
-  
-Type: AddressEntries
-Lower: 0
-Upper: 1
+ 
+ Type: AddressEntries
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -1177,14 +1253,13 @@ sub AddressEntries() {
 #===============================================================================
 # Rinchi::Outlook::AddressList::ID
 
-=item $value = $Object->ID([$new_value]);
+=head2 $value = $Object->ID([$new_value]);
 
 Set or get value of the ID attribute.
-
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -1199,14 +1274,14 @@ sub ID() {
 #===============================================================================
 # Rinchi::Outlook::AddressList::Index
 
-=item $value = $Object->Index([$new_value]);
+=head2 $value = $Object->Index([$new_value]);
 
 Set or get value of the Index attribute.
 
   
-Type: Long
-Lower: 0
-Upper: 1
+ Type: Long
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -1225,14 +1300,14 @@ sub Index() {
 #===============================================================================
 # Rinchi::Outlook::AddressList::IsReadOnly
 
-=item $value = $Object->IsReadOnly([$new_value]);
+=head2 $value = $Object->IsReadOnly([$new_value]);
 
 Set or get value of the IsReadOnly attribute.
 
   
-Type: Boolean
-Lower: 0
-Upper: 1
+ Type: Boolean
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -1262,13 +1337,11 @@ our @ISA = qw(Rinchi::Outlook::Element Rinchi::Outlook::BasicElement);
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of Application objects
 
-Rinchi::Outlook::Application - Module for representing Application objects.
+Rinchi::Outlook::Application is used for representing Application objects.
 
-=head1 DESCRIPTION of Application
-
-  
+=head1 METHODS for Application objects
 
 =cut
 
@@ -1282,14 +1355,14 @@ Rinchi::Outlook::Application - Module for representing Application objects.
 #===============================================================================
 # Rinchi::Outlook::Application::AnswerWizard
 
-=item $value = $Object->AnswerWizard([$new_value]);
+=head2 $value = $Object->AnswerWizard([$new_value]);
 
 Set or get value of the AnswerWizard attribute.
 
   
-Type: AnswerWizard
-Lower: 0
-Upper: 1
+ Type: AnswerWizard
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -1309,14 +1382,14 @@ sub AnswerWizard() {
 #===============================================================================
 # Rinchi::Outlook::Application::Application
 
-=item $value = $Object->Application([$new_value]);
+=head2 $value = $Object->Application([$new_value]);
 
 Set or get value of the Application attribute.
 
   
-Type: Application
-Lower: 0
-Upper: 1
+ Type: Application
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -1336,14 +1409,14 @@ sub Application() {
 #===============================================================================
 # Rinchi::Outlook::Application::Assistant
 
-=item $value = $Object->Assistant([$new_value]);
+=head2 $value = $Object->Assistant([$new_value]);
 
 Set or get value of the Assistant attribute.
 
   
-Type: Assistant
-Lower: 0
-Upper: 1
+ Type: Assistant
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -1363,14 +1436,14 @@ sub Assistant() {
 #===============================================================================
 # Rinchi::Outlook::Application::COMAddIns
 
-=item $value = $Object->COMAddIns([$new_value]);
+=head2 $value = $Object->COMAddIns([$new_value]);
 
 Set or get value of the COMAddIns attribute.
 
   
-Type: COMAddIns
-Lower: 0
-Upper: 1
+ Type: COMAddIns
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -1390,14 +1463,14 @@ sub COMAddIns() {
 #===============================================================================
 # Rinchi::Outlook::Application::Class
 
-=item $value = $Object->Class([$new_value]);
+=head2 $value = $Object->Class([$new_value]);
 
 Set or get value of the Class attribute.
 
   
-Type: OlObjectClass
-Lower: 0
-Upper: 1
+ Type: OlObjectClass
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -1420,14 +1493,14 @@ sub Class() {
 #===============================================================================
 # Rinchi::Outlook::Application::Explorers
 
-=item $Element = $Object->Explorers();
+=head2 $Element = $Object->Explorers();
 
 Set or get value of the Explorers attribute.
 
   
-Type: Explorers
-Lower: 0
-Upper: 1
+ Type: Explorers
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -1439,14 +1512,14 @@ sub Explorers() {
 #===============================================================================
 # Rinchi::Outlook::Application::FeatureInstall
 
-=item $value = $Object->FeatureInstall([$new_value]);
+=head2 $value = $Object->FeatureInstall([$new_value]);
 
 Set or get value of the FeatureInstall attribute.
 
   
-Type: MsoFeatureInstall
-Lower: 0
-Upper: 1
+ Type: MsoFeatureInstall
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -1466,14 +1539,14 @@ sub FeatureInstall() {
 #===============================================================================
 # Rinchi::Outlook::Application::Inspectors
 
-=item $Element = $Object->Inspectors();
+=head2 $Element = $Object->Inspectors();
 
 Set or get value of the Inspectors attribute.
 
   
-Type: Inspectors
-Lower: 0
-Upper: 1
+ Type: Inspectors
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -1485,14 +1558,14 @@ sub Inspectors() {
 #===============================================================================
 # Rinchi::Outlook::Application::LanguageSettings
 
-=item $value = $Object->LanguageSettings([$new_value]);
+=head2 $value = $Object->LanguageSettings([$new_value]);
 
 Set or get value of the LanguageSettings attribute.
 
   
-Type: LanguageSettings
-Lower: 0
-Upper: 1
+ Type: LanguageSettings
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -1512,14 +1585,14 @@ sub LanguageSettings() {
 #===============================================================================
 # Rinchi::Outlook::Application::Name
 
-=item $value = $Object->Name([$new_value]);
+=head2 $value = $Object->Name([$new_value]);
 
 Set or get value of the Name attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -1534,14 +1607,14 @@ sub Name() {
 #===============================================================================
 # Rinchi::Outlook::Application::Parent
 
-=item $value = $Object->Parent([$new_value]);
+=head2 $value = $Object->Parent([$new_value]);
 
 Set or get value of the Parent attribute.
 
   
-Type: Object
-Lower: 0
-Upper: 1
+ Type: Object
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -1561,14 +1634,14 @@ sub Parent() {
 #===============================================================================
 # Rinchi::Outlook::Application::ProductCode
 
-=item $value = $Object->ProductCode([$new_value]);
+=head2 $value = $Object->ProductCode([$new_value]);
 
 Set or get value of the ProductCode attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -1583,14 +1656,14 @@ sub ProductCode() {
 #===============================================================================
 # Rinchi::Outlook::Application::Reminders
 
-=item $Element = $Object->Reminders();
+=head2 $Element = $Object->Reminders();
 
 Set or get value of the Reminders attribute.
 
   
-Type: Reminders
-Lower: 0
-Upper: 1
+ Type: Reminders
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -1602,14 +1675,14 @@ sub Reminders() {
 #===============================================================================
 # Rinchi::Outlook::Application::Session
 
-=item $value = $Object->Session([$new_value]);
+=head2 $value = $Object->Session([$new_value]);
 
 Set or get value of the Session attribute.
 
   
-Type: NameSpace
-Lower: 0
-Upper: 1
+ Type: NameSpace
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -1629,14 +1702,14 @@ sub Session() {
 #===============================================================================
 # Rinchi::Outlook::Application::Version
 
-=item $value = $Object->Version([$new_value]);
+=head2 $value = $Object->Version([$new_value]);
 
 Set or get value of the Version attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -1662,27 +1735,12 @@ our @ISA = qw(Rinchi::Outlook::Element Rinchi::Outlook::OutlookEntry);
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
-
-Rinchi::Outlook::Attachment - Module for representing Attachment objects.
-
 =head1 DESCRIPTION of Attachment
 
-  Represents a document or link to a document contained in an Outlook item.
-Using the Attachment Object
+Rinchi::Outlook::Attachment is used for representing Attachment objects. 
+An Attachment represents a document or link to a document contained in an Outlook item.
 
-Use Attachments (index), where index is the index number, to return a single Attachment object.
-
-Use the Add method to add an attachment to an item.
-
-The following Visual Basic for Applications (VBA) example creates a new mail message, attaches Q496.xls as an attachment (not a link), and gives the attachment a descriptive caption.
-
-Set myOlApp = CreateObject("Outlook.Application")
-Set myItem = myOlApp.CreateItem(olMailItem)
-Set myAttachments = myItem.Attachments
-myAttachments.Add "C:\My Documents\Q496.xls", _
-    olByValue, 1, "4th Quarter 1996 Results Chart"
-
+=head1 METHODS for Attachment objects
 
 =cut
 
@@ -1696,14 +1754,13 @@ myAttachments.Add "C:\My Documents\Q496.xls", _
 #===============================================================================
 # Rinchi::Outlook::Attachment::DisplayName
 
-=item $value = $Object->DisplayName([$new_value]);
+=head2 $value = $Object->DisplayName([$new_value]);
 
 Set or get value of the DisplayName attribute.
-
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -1718,14 +1775,13 @@ sub DisplayName() {
 #===============================================================================
 # Rinchi::Outlook::Attachment::FileName
 
-=item $value = $Object->FileName([$new_value]);
+=head2 $value = $Object->FileName([$new_value]);
 
 Set or get value of the FileName attribute.
-
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -1740,14 +1796,13 @@ sub FileName() {
 #===============================================================================
 # Rinchi::Outlook::Attachment::Index
 
-=item $value = $Object->Index([$new_value]);
+=head2 $value = $Object->Index([$new_value]);
 
 Set or get value of the Index attribute.
-
   
-Type: Long
-Lower: 0
-Upper: 1
+ Type: Long
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -1766,14 +1821,13 @@ sub Index() {
 #===============================================================================
 # Rinchi::Outlook::Attachment::PathName
 
-=item $value = $Object->PathName([$new_value]);
+=head2 $value = $Object->PathName([$new_value]);
 
 Set or get value of the PathName attribute.
-
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -1788,14 +1842,13 @@ sub PathName() {
 #===============================================================================
 # Rinchi::Outlook::Attachment::Position
 
-=item $value = $Object->Position([$new_value]);
+=head2 $value = $Object->Position([$new_value]);
 
 Set or get value of the Position attribute.
-
   
-Type: Long
-Lower: 0
-Upper: 1
+ Type: Long
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -1814,14 +1867,13 @@ sub Position() {
 #===============================================================================
 # Rinchi::Outlook::Attachment::Type
 
-=item $value = $Object->Type([$new_value]);
+=head2 $value = $Object->Type([$new_value]);
 
 Set or get value of the Type attribute.
-
   
-Type: OlAttachmentType
-Lower: 0
-Upper: 1
+ Type: OlAttachmentType
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -1844,15 +1896,15 @@ sub Type() {
 #===============================================================================
 # Rinchi::Outlook::Attachment::MD5
 
-=item $value = $Object->MD5([$new_value]);
+=head2 $value = $Object->MD5([$new_value]);
 
 Set or get value of the MD5 attribute.
 
   Added attribute for saving the MD5 hash of the saved attachement.  This is used for elimination of duplicate files.
 
-Type: String
-Lower: 1
-Upper: 1
+ Type: String
+ Lower: 1
+ Upper: 1
 
 =cut
 
@@ -1878,13 +1930,11 @@ our @ISA = qw(Rinchi::Outlook::Element Rinchi::Outlook::OutlookNamedEntry);
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of Conflict class
 
-Rinchi::Outlook::Conflict - Module for representing Conflict objects.
+Rinchi::Outlook::Conflict is used for representing Conflict objects.
 
-=head1 DESCRIPTION of Conflict
-
-  
+=head1 METHODS for Conflict objects
 
 =cut
 
@@ -1898,14 +1948,13 @@ Rinchi::Outlook::Conflict - Module for representing Conflict objects.
 #===============================================================================
 # Rinchi::Outlook::Conflict::Item
 
-=item $value = $Object->Item([$new_value]);
+=head2 $value = $Object->Item([$new_value]);
 
 Set or get value of the Item attribute.
-
   
-Type: Object
-Lower: 0
-Upper: 1
+ Type: Object
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -1925,14 +1974,13 @@ sub Item() {
 #===============================================================================
 # Rinchi::Outlook::Conflict::Name
 
-=item $value = $Object->Name([$new_value]);
+=head2 $value = $Object->Name([$new_value]);
 
 Set or get value of the Name attribute.
-
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -1947,14 +1995,13 @@ sub Name() {
 #===============================================================================
 # Rinchi::Outlook::Conflict::Type
 
-=item $value = $Object->Type([$new_value]);
+=head2 $value = $Object->Type([$new_value]);
 
 Set or get value of the Type attribute.
-
   
-Type: OlObjectClass
-Lower: 0
-Upper: 1
+ Type: OlObjectClass
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -1988,13 +2035,13 @@ our @ISA = qw(Rinchi::Outlook::Element Rinchi::Outlook::OutlookEntry);
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of Exception class
 
-Rinchi::Outlook::Exception - Module for representing Exception objects.
+Rinchi::Outlook::Exception is used for representing Exception objects. An 
+Exception object holds information about one instance of an AppointmentItem object 
+which is an exception to a recurring series. 
 
-=head1 DESCRIPTION of Exception
-
-  
+=head1 METHODS for Exception objects
 
 =cut
 
@@ -2008,14 +2055,13 @@ Rinchi::Outlook::Exception - Module for representing Exception objects.
 #===============================================================================
 # Rinchi::Outlook::Exception::AppointmentItem
 
-=item $value = $Object->AppointmentItem([$new_value]);
+=head2 $value = $Object->AppointmentItem([$new_value]);
 
 Set or get value of the AppointmentItem attribute.
-
   
-Type: AppointmentItem
-Lower: 0
-Upper: 1
+ Type: AppointmentItem
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -2035,14 +2081,13 @@ sub AppointmentItem() {
 #===============================================================================
 # Rinchi::Outlook::Exception::Deleted
 
-=item $value = $Object->Deleted([$new_value]);
+=head2 $value = $Object->Deleted([$new_value]);
 
 Set or get value of the Deleted attribute.
-
   
-Type: Boolean
-Lower: 0
-Upper: 1
+ Type: Boolean
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -2061,14 +2106,13 @@ sub Deleted() {
 #===============================================================================
 # Rinchi::Outlook::Exception::ItemProperties
 
-=item $Element = $Object->ItemProperties();
+=head2 $Element = $Object->ItemProperties();
 
 Set or get value of the ItemProperties attribute.
-
   
-Type: ItemProperties
-Lower: 0
-Upper: 1
+ Type: ItemProperties (Collection)
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -2080,14 +2124,13 @@ sub ItemProperties() {
 #===============================================================================
 # Rinchi::Outlook::Exception::OriginalDate
 
-=item $value = $Object->OriginalDate([$new_value]);
+=head2 $value = $Object->OriginalDate([$new_value]);
 
 Set or get value of the OriginalDate attribute.
-
   
-Type: VT_DATE
-Lower: 0
-Upper: 1
+ Type: VT_DATE
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -2113,13 +2156,12 @@ our @ISA = qw(Rinchi::Outlook::Element Rinchi::Outlook::OutlookEntry);
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of Explorer class
 
-Rinchi::Outlook::Explorer - Module for representing Explorer objects.
+Rinchi::Outlook::Explorer is used for representing Explorer objects. An Explorer 
+represents the window in which the contents of a folder are displayed.
 
-=head1 DESCRIPTION of Explorer
-
-  
+=head1 METHODS for Explorer objects
 
 =cut
 
@@ -2133,14 +2175,13 @@ Rinchi::Outlook::Explorer - Module for representing Explorer objects.
 #===============================================================================
 # Rinchi::Outlook::Explorer::Caption
 
-=item $value = $Object->Caption([$new_value]);
+=head2 $value = $Object->Caption([$new_value]);
 
 Set or get value of the Caption attribute.
-
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -2155,14 +2196,13 @@ sub Caption() {
 #===============================================================================
 # Rinchi::Outlook::Explorer::CommandBars
 
-=item $value = $Object->CommandBars([$new_value]);
+=head2 $value = $Object->CommandBars([$new_value]);
 
 Set or get value of the CommandBars attribute.
-
   
-Type: CommandBars
-Lower: 0
-Upper: 1
+ Type: CommandBars (Collection)
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -2182,14 +2222,13 @@ sub CommandBars() {
 #===============================================================================
 # Rinchi::Outlook::Explorer::CurrentFolder
 
-=item $value = $Object->CurrentFolder([$new_value]);
+=head2 $value = $Object->CurrentFolder([$new_value]);
 
 Set or get value of the CurrentFolder attribute.
-
   
-Type: MAPIFolder
-Lower: 0
-Upper: 1
+ Type: MAPIFolder
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -2209,14 +2248,13 @@ sub CurrentFolder() {
 #===============================================================================
 # Rinchi::Outlook::Explorer::CurrentView
 
-=item $value = $Object->CurrentView([$new_value]);
+=head2 $value = $Object->CurrentView([$new_value]);
 
 Set or get value of the CurrentView attribute.
 
-  
-Type: Variant
-Lower: 0
-Upper: 1
+ Type: Variant
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -2236,14 +2274,13 @@ sub CurrentView() {
 #===============================================================================
 # Rinchi::Outlook::Explorer::HTMLDocument
 
-=item $value = $Object->HTMLDocument([$new_value]);
+=head2 $value = $Object->HTMLDocument([$new_value]);
 
 Set or get value of the HTMLDocument attribute.
 
-  
-Type: Object
-Lower: 0
-Upper: 1
+ Type: Object
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -2263,14 +2300,13 @@ sub HTMLDocument() {
 #===============================================================================
 # Rinchi::Outlook::Explorer::Height
 
-=item $value = $Object->Height([$new_value]);
+=head2 $value = $Object->Height([$new_value]);
 
 Set or get value of the Height attribute.
 
-  
-Type: Long
-Lower: 0
-Upper: 1
+ Type: Long
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -2289,14 +2325,13 @@ sub Height() {
 #===============================================================================
 # Rinchi::Outlook::Explorer::Left
 
-=item $value = $Object->Left([$new_value]);
+=head2 $value = $Object->Left([$new_value]);
 
 Set or get value of the Left attribute.
 
-  
-Type: Long
-Lower: 0
-Upper: 1
+ Type: Long
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -2315,14 +2350,13 @@ sub Left() {
 #===============================================================================
 # Rinchi::Outlook::Explorer::Panes
 
-=item $Element = $Object->Panes();
+=head2 $Element = $Object->Panes();
 
 Set or get value of the Panes attribute.
-
   
-Type: Panes
-Lower: 0
-Upper: 1
+ Type: Panes (Collection)
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -2334,14 +2368,13 @@ sub Panes() {
 #===============================================================================
 # Rinchi::Outlook::Explorer::Selection
 
-=item $value = $Object->Selection([$new_value]);
+=head2 $value = $Object->Selection([$new_value]);
 
 Set or get value of the Selection attribute.
-
   
-Type: Selection
-Lower: 0
-Upper: 1
+ Type: Selection
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -2361,14 +2394,13 @@ sub Selection() {
 #===============================================================================
 # Rinchi::Outlook::Explorer::Top
 
-=item $value = $Object->Top([$new_value]);
+=head2 $value = $Object->Top([$new_value]);
 
 Set or get value of the Top attribute.
-
   
-Type: Long
-Lower: 0
-Upper: 1
+ Type: Long
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -2387,14 +2419,13 @@ sub Top() {
 #===============================================================================
 # Rinchi::Outlook::Explorer::Views
 
-=item $value = $Object->Views([$new_value]);
+=head2 $value = $Object->Views([$new_value]);
 
 Set or get value of the Views attribute.
-
   
-Type: Object
-Lower: 0
-Upper: 1
+ Type: Object
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -2414,14 +2445,13 @@ sub Views() {
 #===============================================================================
 # Rinchi::Outlook::Explorer::Width
 
-=item $value = $Object->Width([$new_value]);
+=head2 $value = $Object->Width([$new_value]);
 
 Set or get value of the Width attribute.
-
   
-Type: Long
-Lower: 0
-Upper: 1
+ Type: Long
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -2440,14 +2470,13 @@ sub Width() {
 #===============================================================================
 # Rinchi::Outlook::Explorer::WindowState
 
-=item $value = $Object->WindowState([$new_value]);
+=head2 $value = $Object->WindowState([$new_value]);
 
 Set or get value of the WindowState attribute.
-
   
-Type: OlWindowState
-Lower: 0
-Upper: 1
+ Type: OlWindowState
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -2481,13 +2510,12 @@ our @ISA = qw(Rinchi::Outlook::Element Rinchi::Outlook::BasicElement);
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of FormDescription class
 
-Rinchi::Outlook::FormDescription - Module for representing FormDescription objects.
+Rinchi::Outlook::FormDescription is used for representing FormDescription objects. 
+A FormDescription contains the general properties of a Microsoft Outlook form. 
 
-=head1 DESCRIPTION of FormDescription
-
-  
+=head1 METHODS for FormDescription objects
 
 =cut
 
@@ -2501,14 +2529,13 @@ Rinchi::Outlook::FormDescription - Module for representing FormDescription objec
 #===============================================================================
 # Rinchi::Outlook::FormDescription::Application
 
-=item $value = $Object->Application([$new_value]);
+=head2 $value = $Object->Application([$new_value]);
 
 Set or get value of the Application attribute.
-
   
-Type: Application
-Lower: 0
-Upper: 1
+ Type: Application
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -2528,14 +2555,13 @@ sub Application() {
 #===============================================================================
 # Rinchi::Outlook::FormDescription::Category
 
-=item $value = $Object->Category([$new_value]);
+=head2 $value = $Object->Category([$new_value]);
 
 Set or get value of the Category attribute.
-
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -2550,14 +2576,13 @@ sub Category() {
 #===============================================================================
 # Rinchi::Outlook::FormDescription::CategorySub
 
-=item $value = $Object->CategorySub([$new_value]);
+=head2 $value = $Object->CategorySub([$new_value]);
 
 Set or get value of the CategorySub attribute.
-
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -2572,14 +2597,13 @@ sub CategorySub() {
 #===============================================================================
 # Rinchi::Outlook::FormDescription::Class
 
-=item $value = $Object->Class([$new_value]);
+=head2 $value = $Object->Class([$new_value]);
 
 Set or get value of the Class attribute.
-
   
-Type: OlObjectClass
-Lower: 0
-Upper: 1
+ Type: OlObjectClass
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -2602,14 +2626,13 @@ sub Class() {
 #===============================================================================
 # Rinchi::Outlook::FormDescription::Comment
 
-=item $value = $Object->Comment([$new_value]);
+=head2 $value = $Object->Comment([$new_value]);
 
 Set or get value of the Comment attribute.
-
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -2624,14 +2647,13 @@ sub Comment() {
 #===============================================================================
 # Rinchi::Outlook::FormDescription::ContactName
 
-=item $value = $Object->ContactName([$new_value]);
+=head2 $value = $Object->ContactName([$new_value]);
 
 Set or get value of the ContactName attribute.
-
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -2646,14 +2668,13 @@ sub ContactName() {
 #===============================================================================
 # Rinchi::Outlook::FormDescription::DisplayName
 
-=item $value = $Object->DisplayName([$new_value]);
+=head2 $value = $Object->DisplayName([$new_value]);
 
 Set or get value of the DisplayName attribute.
-
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -2668,14 +2689,13 @@ sub DisplayName() {
 #===============================================================================
 # Rinchi::Outlook::FormDescription::Hidden
 
-=item $value = $Object->Hidden([$new_value]);
+=head2 $value = $Object->Hidden([$new_value]);
 
 Set or get value of the Hidden attribute.
-
   
-Type: Boolean
-Lower: 0
-Upper: 1
+ Type: Boolean
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -2694,14 +2714,13 @@ sub Hidden() {
 #===============================================================================
 # Rinchi::Outlook::FormDescription::Icon
 
-=item $value = $Object->Icon([$new_value]);
+=head2 $value = $Object->Icon([$new_value]);
 
 Set or get value of the Icon attribute.
-
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -2716,14 +2735,13 @@ sub Icon() {
 #===============================================================================
 # Rinchi::Outlook::FormDescription::Locked
 
-=item $value = $Object->Locked([$new_value]);
+=head2 $value = $Object->Locked([$new_value]);
 
 Set or get value of the Locked attribute.
-
   
-Type: Boolean
-Lower: 0
-Upper: 1
+ Type: Boolean
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -2742,14 +2760,13 @@ sub Locked() {
 #===============================================================================
 # Rinchi::Outlook::FormDescription::MessageClass
 
-=item $value = $Object->MessageClass([$new_value]);
+=head2 $value = $Object->MessageClass([$new_value]);
 
 Set or get value of the MessageClass attribute.
-
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -2764,14 +2781,13 @@ sub MessageClass() {
 #===============================================================================
 # Rinchi::Outlook::FormDescription::MiniIcon
 
-=item $value = $Object->MiniIcon([$new_value]);
+=head2 $value = $Object->MiniIcon([$new_value]);
 
 Set or get value of the MiniIcon attribute.
-
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -2786,14 +2802,13 @@ sub MiniIcon() {
 #===============================================================================
 # Rinchi::Outlook::FormDescription::Name
 
-=item $value = $Object->Name([$new_value]);
+=head2 $value = $Object->Name([$new_value]);
 
 Set or get value of the Name attribute.
-
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -2808,14 +2823,13 @@ sub Name() {
 #===============================================================================
 # Rinchi::Outlook::FormDescription::Number
 
-=item $value = $Object->Number([$new_value]);
+=head2 $value = $Object->Number([$new_value]);
 
 Set or get value of the Number attribute.
-
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -2830,14 +2844,13 @@ sub Number() {
 #===============================================================================
 # Rinchi::Outlook::FormDescription::OneOff
 
-=item $value = $Object->OneOff([$new_value]);
+=head2 $value = $Object->OneOff([$new_value]);
 
 Set or get value of the OneOff attribute.
-
   
-Type: Boolean
-Lower: 0
-Upper: 1
+ Type: Boolean
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -2856,14 +2869,13 @@ sub OneOff() {
 #===============================================================================
 # Rinchi::Outlook::FormDescription::Parent
 
-=item $value = $Object->Parent([$new_value]);
+=head2 $value = $Object->Parent([$new_value]);
 
 Set or get value of the Parent attribute.
-
   
-Type: Object
-Lower: 0
-Upper: 1
+ Type: Object
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -2883,14 +2895,13 @@ sub Parent() {
 #===============================================================================
 # Rinchi::Outlook::FormDescription::Password
 
-=item $value = $Object->Password([$new_value]);
+=head2 $value = $Object->Password([$new_value]);
 
 Set or get value of the Password attribute.
-
-  
-Type: String
-Lower: 0
-Upper: 1
+ 
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -2905,14 +2916,13 @@ sub Password() {
 #===============================================================================
 # Rinchi::Outlook::FormDescription::ScriptText
 
-=item $value = $Object->ScriptText([$new_value]);
+=head2 $value = $Object->ScriptText([$new_value]);
 
 Set or get value of the ScriptText attribute.
-
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -2927,14 +2937,13 @@ sub ScriptText() {
 #===============================================================================
 # Rinchi::Outlook::FormDescription::Session
 
-=item $value = $Object->Session([$new_value]);
+=head2 $value = $Object->Session([$new_value]);
 
 Set or get value of the Session attribute.
-
   
-Type: NameSpace
-Lower: 0
-Upper: 1
+ Type: NameSpace
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -2954,14 +2963,13 @@ sub Session() {
 #===============================================================================
 # Rinchi::Outlook::FormDescription::Template
 
-=item $value = $Object->Template([$new_value]);
+=head2 $value = $Object->Template([$new_value]);
 
 Set or get value of the Template attribute.
-
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -2976,14 +2984,13 @@ sub Template() {
 #===============================================================================
 # Rinchi::Outlook::FormDescription::UseWordMail
 
-=item $value = $Object->UseWordMail([$new_value]);
+=head2 $value = $Object->UseWordMail([$new_value]);
 
 Set or get value of the UseWordMail attribute.
-
   
-Type: Boolean
-Lower: 0
-Upper: 1
+ Type: Boolean
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -3002,14 +3009,13 @@ sub UseWordMail() {
 #===============================================================================
 # Rinchi::Outlook::FormDescription::Version
 
-=item $value = $Object->Version([$new_value]);
+=head2 $value = $Object->Version([$new_value]);
 
 Set or get value of the Version attribute.
-
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -3035,13 +3041,12 @@ our @ISA = qw(Rinchi::Outlook::Element Rinchi::Outlook::OutlookEntry);
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of Inspector class
 
-Rinchi::Outlook::Inspector - Module for representing Inspector objects.
+Rinchi::Outlook::Inspector is used for representing Inspector objects. An 
+Inspector represents the window in which an Outlook item is displayed.
 
-=head1 DESCRIPTION of Inspector
-
-  
+=head1 METHODS for Inspector objects
 
 =cut
 
@@ -3055,14 +3060,13 @@ Rinchi::Outlook::Inspector - Module for representing Inspector objects.
 #===============================================================================
 # Rinchi::Outlook::Inspector::Caption
 
-=item $value = $Object->Caption([$new_value]);
+=head2 $value = $Object->Caption([$new_value]);
 
 Set or get value of the Caption attribute.
-
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -3077,14 +3081,13 @@ sub Caption() {
 #===============================================================================
 # Rinchi::Outlook::Inspector::CommandBars
 
-=item $value = $Object->CommandBars([$new_value]);
+=head2 $value = $Object->CommandBars([$new_value]);
 
 Set or get value of the CommandBars attribute.
 
-  
-Type: CommandBars
-Lower: 0
-Upper: 1
+ Type: CommandBars
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -3104,14 +3107,13 @@ sub CommandBars() {
 #===============================================================================
 # Rinchi::Outlook::Inspector::CurrentItem
 
-=item $value = $Object->CurrentItem([$new_value]);
+=head2 $value = $Object->CurrentItem([$new_value]);
 
 Set or get value of the CurrentItem attribute.
-
   
-Type: Object
-Lower: 0
-Upper: 1
+ Type: Object
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -3131,14 +3133,13 @@ sub CurrentItem() {
 #===============================================================================
 # Rinchi::Outlook::Inspector::EditorType
 
-=item $value = $Object->EditorType([$new_value]);
+=head2 $value = $Object->EditorType([$new_value]);
 
 Set or get value of the EditorType attribute.
 
-  
-Type: OlEditorType
-Lower: 0
-Upper: 1
+ Type: OlEditorType
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -3161,14 +3162,13 @@ sub EditorType() {
 #===============================================================================
 # Rinchi::Outlook::Inspector::HTMLEditor
 
-=item $value = $Object->HTMLEditor([$new_value]);
+=head2 $value = $Object->HTMLEditor([$new_value]);
 
 Set or get value of the HTMLEditor attribute.
-
   
-Type: Object
-Lower: 0
-Upper: 1
+ Type: Object
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -3188,14 +3188,13 @@ sub HTMLEditor() {
 #===============================================================================
 # Rinchi::Outlook::Inspector::Height
 
-=item $value = $Object->Height([$new_value]);
+=head2 $value = $Object->Height([$new_value]);
 
 Set or get value of the Height attribute.
-
   
-Type: Long
-Lower: 0
-Upper: 1
+ Type: Long
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -3214,14 +3213,13 @@ sub Height() {
 #===============================================================================
 # Rinchi::Outlook::Inspector::Left
 
-=item $value = $Object->Left([$new_value]);
+=head2 $value = $Object->Left([$new_value]);
 
 Set or get value of the Left attribute.
-
   
-Type: Long
-Lower: 0
-Upper: 1
+ Type: Long
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -3240,14 +3238,13 @@ sub Left() {
 #===============================================================================
 # Rinchi::Outlook::Inspector::ModifiedFormPages
 
-=item $value = $Object->ModifiedFormPages([$new_value]);
+=head2 $value = $Object->ModifiedFormPages([$new_value]);
 
 Set or get value of the ModifiedFormPages attribute.
-
   
-Type: Object
-Lower: 0
-Upper: 1
+ Type: Object
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -3267,14 +3264,13 @@ sub ModifiedFormPages() {
 #===============================================================================
 # Rinchi::Outlook::Inspector::Top
 
-=item $value = $Object->Top([$new_value]);
+=head2 $value = $Object->Top([$new_value]);
 
 Set or get value of the Top attribute.
-
   
-Type: Long
-Lower: 0
-Upper: 1
+ Type: Long
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -3293,14 +3289,13 @@ sub Top() {
 #===============================================================================
 # Rinchi::Outlook::Inspector::Width
 
-=item $value = $Object->Width([$new_value]);
+=head2 $value = $Object->Width([$new_value]);
 
 Set or get value of the Width attribute.
-
   
-Type: Long
-Lower: 0
-Upper: 1
+ Type: Long
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -3319,14 +3314,13 @@ sub Width() {
 #===============================================================================
 # Rinchi::Outlook::Inspector::WindowState
 
-=item $value = $Object->WindowState([$new_value]);
+=head2 $value = $Object->WindowState([$new_value]);
 
 Set or get value of the WindowState attribute.
-
   
-Type: OlWindowState
-Lower: 0
-Upper: 1
+ Type: OlWindowState
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -3349,14 +3343,13 @@ sub WindowState() {
 #===============================================================================
 # Rinchi::Outlook::Inspector::WordEditor
 
-=item $value = $Object->WordEditor([$new_value]);
+=head2 $value = $Object->WordEditor([$new_value]);
 
 Set or get value of the WordEditor attribute.
-
   
-Type: Object
-Lower: 0
-Upper: 1
+ Type: Object
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -3387,35 +3380,15 @@ our @ISA = qw(Rinchi::Outlook::Element Rinchi::Outlook::OutlookNamedEntry);
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of ItemProperty class
 
-Rinchi::Outlook::ItemProperty - Module for representing ItemProperty objects.
+Rinchi::Outlook::ItemProperty is used for representing ItemProperty objects. An 
+ItemProperty object contains information about a given item property. Each item 
+property defines a certain attribute of the item, such as the name, type, or 
+value of the item. The ItemProperty object is a member of the ItemProperties 
+collection.
 
-=head1 DESCRIPTION of ItemProperty
-
-  Contains information about a given item property. Each item property defines a certain attribute of the item, such as the name, type, or value of the item. The ItemProperty object is a member of the ItemProperties   collection.
-Using the ItemProperty object
-
-Use ItemProperties.Item(index), where index is the object's numeric position within the collection or its name to return a single ItemProperty object. The following example creates a reference to the first ItemProperty object in the ItemProperties collection.
-
-Sub NewMail()
-'Creates a new MailItem and references the ItemProperties collection.
-
-    Dim olApp As Outlook.Application
-    Dim objMail As MailItem
-    Dim objitems As ItemProperties
-    Dim objitem As ItemProperty
-
-    Set olApp = Outlook.Application
-    'Create a new mail item
-    Set objMail = olApp.CreateItem(olMailItem)
-    'Create a reference to the ItemProperties collection
-    Set objitems = objMail.ItemProperties
-    'Create reference to the first object in the collection
-    Set objitem = objitems.item(0)
-
-End Sub
-
+=head1 METHODS for ItemProperty objects
 
 =cut
 
@@ -3429,14 +3402,14 @@ End Sub
 #===============================================================================
 # Rinchi::Outlook::ItemProperty::Formula
 
-=item $value = $Object->Formula([$new_value]);
+=head2 $value = $Object->Formula([$new_value]);
 
 Set or get value of the Formula attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -3451,14 +3424,13 @@ sub Formula() {
 #===============================================================================
 # Rinchi::Outlook::ItemProperty::IsUserProperty
 
-=item $value = $Object->IsUserProperty([$new_value]);
+=head2 $value = $Object->IsUserProperty([$new_value]);
 
 Set or get value of the IsUserProperty attribute.
-
   
-Type: Boolean
-Lower: 0
-Upper: 1
+ Type: Boolean
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -3477,14 +3449,13 @@ sub IsUserProperty() {
 #===============================================================================
 # Rinchi::Outlook::ItemProperty::Type
 
-=item $value = $Object->Type([$new_value]);
+=head2 $value = $Object->Type([$new_value]);
 
 Set or get value of the Type attribute.
-
   
-Type: OlUserPropertyType
-Lower: 0
-Upper: 1
+ Type: OlUserPropertyType
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -3507,14 +3478,13 @@ sub Type() {
 #===============================================================================
 # Rinchi::Outlook::ItemProperty::ValidationFormula
 
-=item $value = $Object->ValidationFormula([$new_value]);
+=head2 $value = $Object->ValidationFormula([$new_value]);
 
 Set or get value of the ValidationFormula attribute.
-
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -3529,14 +3499,13 @@ sub ValidationFormula() {
 #===============================================================================
 # Rinchi::Outlook::ItemProperty::ValidationText
 
-=item $value = $Object->ValidationText([$new_value]);
+=head2 $value = $Object->ValidationText([$new_value]);
 
 Set or get value of the ValidationText attribute.
-
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -3551,14 +3520,13 @@ sub ValidationText() {
 #===============================================================================
 # Rinchi::Outlook::ItemProperty::Value
 
-=item $value = $Object->Value([$new_value]);
+=head2 $value = $Object->Value([$new_value]);
 
 Set or get value of the Value attribute.
-
   
-Type: Variant
-Lower: 0
-Upper: 1
+ Type: Variant
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -3589,21 +3557,14 @@ our @ISA = qw(Rinchi::Outlook::Element Rinchi::Outlook::OutlookNamedEntry);
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of Link class
 
-Rinchi::Outlook::Link - Module for representing Link objects.
+Rinchi::Outlook::Link is used for representing Link objects. A Link represents 
+an item  that is linked to another Microsoft Outlook item. Each item has a Links 
+object associated with it that represents all the items that have been linked to 
+the item.
 
-=head1 DESCRIPTION of Link
-
-  Represents an item  that is linked to another Microsoft Outlook item. Each item has a Links  object associated with it that represents all the items that have been linked to the item.
-
-Note  For Outlook 2000 and later, only contacts can be linked to other items.
-Using the Link Object
-
-Use the Item method to retrieve the Link object from a Links object. Because the Name property is the default property of the Link object, you can identify the linked item by name.
-
-Set myLink = myLinks.Item("Microsoft Corporation")
-
+=head1 METHODS for Link objects
 
 =cut
 
@@ -3617,14 +3578,13 @@ Set myLink = myLinks.Item("Microsoft Corporation")
 #===============================================================================
 # Rinchi::Outlook::Link::Item
 
-=item $value = $Object->Item([$new_value]);
+=head2 $value = $Object->Item([$new_value]);
 
 Set or get value of the Item attribute.
-
   
-Type: Object
-Lower: 0
-Upper: 1
+ Type: Object
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -3644,14 +3604,13 @@ sub Item() {
 #===============================================================================
 # Rinchi::Outlook::Link::Type
 
-=item $value = $Object->Type([$new_value]);
+=head2 $value = $Object->Type([$new_value]);
 
 Set or get value of the Type attribute.
-
   
-Type: OlObjectClass
-Lower: 0
-Upper: 1
+ Type: OlObjectClass
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -3685,13 +3644,13 @@ our @ISA = qw(Rinchi::Outlook::Element Rinchi::Outlook::OutlookNamedEntry);
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of MAPIFolder class
 
-Rinchi::Outlook::MAPIFolder - Module for representing MAPIFolder objects.
+Rinchi::Outlook::MAPIFolder is used for representing MAPIFolder objects. A 
+MAPIFolder object Represents a Microsoft Outlook folder. A MAPIFolder object can 
+contain other MAPIFolder objects, as well as Outlook items.
 
-=head1 DESCRIPTION of MAPIFolder
-
-  
+=head1 METHODS for MAPIFolder objects
 
 =cut
 
@@ -3705,14 +3664,13 @@ Rinchi::Outlook::MAPIFolder - Module for representing MAPIFolder objects.
 #===============================================================================
 # Rinchi::Outlook::MAPIFolder::AddressBookName
 
-=item $value = $Object->AddressBookName([$new_value]);
+=head2 $value = $Object->AddressBookName([$new_value]);
 
 Set or get value of the AddressBookName attribute.
 
-  
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -3727,14 +3685,13 @@ sub AddressBookName() {
 #===============================================================================
 # Rinchi::Outlook::MAPIFolder::CurrentView
 
-=item $value = $Object->CurrentView([$new_value]);
+=head2 $value = $Object->CurrentView([$new_value]);
 
 Set or get value of the CurrentView attribute.
 
-  
-Type: View
-Lower: 0
-Upper: 1
+ Type: View
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -3754,14 +3711,13 @@ sub CurrentView() {
 #===============================================================================
 # Rinchi::Outlook::MAPIFolder::CustomViewsOnly
 
-=item $value = $Object->CustomViewsOnly([$new_value]);
+=head2 $value = $Object->CustomViewsOnly([$new_value]);
 
 Set or get value of the CustomViewsOnly attribute.
 
-  
-Type: Boolean
-Lower: 0
-Upper: 1
+ Type: Boolean
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -3780,14 +3736,13 @@ sub CustomViewsOnly() {
 #===============================================================================
 # Rinchi::Outlook::MAPIFolder::DefaultItemType
 
-=item $value = $Object->DefaultItemType([$new_value]);
+=head2 $value = $Object->DefaultItemType([$new_value]);
 
 Set or get value of the DefaultItemType attribute.
 
-  
-Type: OlItemType
-Lower: 0
-Upper: 1
+ Type: OlItemType
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -3810,14 +3765,13 @@ sub DefaultItemType() {
 #===============================================================================
 # Rinchi::Outlook::MAPIFolder::DefaultMessageClass
 
-=item $value = $Object->DefaultMessageClass([$new_value]);
+=head2 $value = $Object->DefaultMessageClass([$new_value]);
 
 Set or get value of the DefaultMessageClass attribute.
 
-  
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -3832,14 +3786,13 @@ sub DefaultMessageClass() {
 #===============================================================================
 # Rinchi::Outlook::MAPIFolder::Description
 
-=item $value = $Object->Description([$new_value]);
+=head2 $value = $Object->Description([$new_value]);
 
 Set or get value of the Description attribute.
 
-  
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -3854,14 +3807,13 @@ sub Description() {
 #===============================================================================
 # Rinchi::Outlook::MAPIFolder::EntryID
 
-=item $value = $Object->EntryID([$new_value]);
+=head2 $value = $Object->EntryID([$new_value]);
 
 Set or get value of the EntryID attribute.
 
-  
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -3876,14 +3828,13 @@ sub EntryID() {
 #===============================================================================
 # Rinchi::Outlook::MAPIFolder::FolderPath
 
-=item $value = $Object->FolderPath([$new_value]);
+=head2 $value = $Object->FolderPath([$new_value]);
 
 Set or get value of the FolderPath attribute.
 
-  
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -3898,14 +3849,13 @@ sub FolderPath() {
 #===============================================================================
 # Rinchi::Outlook::MAPIFolder::Folders
 
-=item $Element = $Object->Folders();
+=head2 $Element = $Object->Folders();
 
 Set or get value of the Folders attribute.
 
-  
-Type: Folders
-Lower: 0
-Upper: 1
+ Type: Folders
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -3917,14 +3867,13 @@ sub Folders() {
 #===============================================================================
 # Rinchi::Outlook::MAPIFolder::FullFolderPath
 
-=item $value = $Object->FullFolderPath([$new_value]);
+=head2 $value = $Object->FullFolderPath([$new_value]);
 
 Set or get value of the FullFolderPath attribute.
 
-  
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -3939,14 +3888,13 @@ sub FullFolderPath() {
 #===============================================================================
 # Rinchi::Outlook::MAPIFolder::InAppFolderSyncObject
 
-=item $value = $Object->InAppFolderSyncObject([$new_value]);
+=head2 $value = $Object->InAppFolderSyncObject([$new_value]);
 
 Set or get value of the InAppFolderSyncObject attribute.
 
-  
-Type: Boolean
-Lower: 0
-Upper: 1
+ Type: Boolean
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -3965,14 +3913,13 @@ sub InAppFolderSyncObject() {
 #===============================================================================
 # Rinchi::Outlook::MAPIFolder::IsSharePointFolder
 
-=item $value = $Object->IsSharePointFolder([$new_value]);
+=head2 $value = $Object->IsSharePointFolder([$new_value]);
 
 Set or get value of the IsSharePointFolder attribute.
 
-  
-Type: Boolean
-Lower: 0
-Upper: 1
+ Type: Boolean
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -3991,14 +3938,13 @@ sub IsSharePointFolder() {
 #===============================================================================
 # Rinchi::Outlook::MAPIFolder::Items
 
-=item $Element = $Object->Items();
+=head2 $Element = $Object->Items();
 
 Set or get value of the Items attribute.
 
-  
-Type: Items
-Lower: 0
-Upper: 1
+ Type: Items
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -4010,14 +3956,13 @@ sub Items() {
 #===============================================================================
 # Rinchi::Outlook::MAPIFolder::ShowAsOutlookAB
 
-=item $value = $Object->ShowAsOutlookAB([$new_value]);
+=head2 $value = $Object->ShowAsOutlookAB([$new_value]);
 
 Set or get value of the ShowAsOutlookAB attribute.
 
-  
-Type: Boolean
-Lower: 0
-Upper: 1
+ Type: Boolean
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -4036,14 +3981,13 @@ sub ShowAsOutlookAB() {
 #===============================================================================
 # Rinchi::Outlook::MAPIFolder::ShowItemCount
 
-=item $value = $Object->ShowItemCount([$new_value]);
+=head2 $value = $Object->ShowItemCount([$new_value]);
 
 Set or get value of the ShowItemCount attribute.
 
-  
-Type: OlShowItemCount
-Lower: 0
-Upper: 1
+ Type: OlShowItemCount
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -4066,14 +4010,13 @@ sub ShowItemCount() {
 #===============================================================================
 # Rinchi::Outlook::MAPIFolder::StoreID
 
-=item $value = $Object->StoreID([$new_value]);
+=head2 $value = $Object->StoreID([$new_value]);
 
 Set or get value of the StoreID attribute.
 
-  
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -4088,14 +4031,13 @@ sub StoreID() {
 #===============================================================================
 # Rinchi::Outlook::MAPIFolder::UnReadItemCount
 
-=item $value = $Object->UnReadItemCount([$new_value]);
+=head2 $value = $Object->UnReadItemCount([$new_value]);
 
 Set or get value of the UnReadItemCount attribute.
 
-  
-Type: Long
-Lower: 0
-Upper: 1
+ Type: Long
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -4114,14 +4056,13 @@ sub UnReadItemCount() {
 #===============================================================================
 # Rinchi::Outlook::MAPIFolder::UserPermissions
 
-=item $value = $Object->UserPermissions([$new_value]);
+=head2 $value = $Object->UserPermissions([$new_value]);
 
 Set or get value of the UserPermissions attribute.
 
-  
-Type: Object
-Lower: 0
-Upper: 1
+ Type: Object
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -4141,14 +4082,13 @@ sub UserPermissions() {
 #===============================================================================
 # Rinchi::Outlook::MAPIFolder::Views
 
-=item $Element = $Object->Views();
+=head2 $Element = $Object->Views();
 
 Set or get value of the Views attribute.
 
-  
-Type: Views
-Lower: 0
-Upper: 1
+ Type: Views
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -4160,14 +4100,13 @@ sub Views() {
 #===============================================================================
 # Rinchi::Outlook::MAPIFolder::WebViewAllowNavigation
 
-=item $value = $Object->WebViewAllowNavigation([$new_value]);
+=head2 $value = $Object->WebViewAllowNavigation([$new_value]);
 
 Set or get value of the WebViewAllowNavigation attribute.
 
-  
-Type: Boolean
-Lower: 0
-Upper: 1
+ Type: Boolean
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -4186,14 +4125,13 @@ sub WebViewAllowNavigation() {
 #===============================================================================
 # Rinchi::Outlook::MAPIFolder::WebViewOn
 
-=item $value = $Object->WebViewOn([$new_value]);
+=head2 $value = $Object->WebViewOn([$new_value]);
 
 Set or get value of the WebViewOn attribute.
 
-  
-Type: Boolean
-Lower: 0
-Upper: 1
+ Type: Boolean
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -4212,14 +4150,13 @@ sub WebViewOn() {
 #===============================================================================
 # Rinchi::Outlook::MAPIFolder::WebViewURL
 
-=item $value = $Object->WebViewURL([$new_value]);
+=head2 $value = $Object->WebViewURL([$new_value]);
 
 Set or get value of the WebViewURL attribute.
 
-  
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -4245,19 +4182,12 @@ our @ISA = qw(Rinchi::Outlook::Element Rinchi::Outlook::BasicElement);
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of NameSpace class
 
-Rinchi::Outlook::NameSpace - Module for representing NameSpace objects.
+Rinchi::Outlook::NameSpace is used for representing NameSpace objects. A 
+NameSpace object represents an abstract root object for any data source.
 
-=head1 DESCRIPTION of NameSpace
-
-  Represents an abstract root object for any data source. The object itself provides methods for logging in and out, accessing storage objects directly by ID, accessing certain special default folders directly, and accessing data sources owned by other users.
-Using the NameSpace Object
-
-Use GetNameSpace ("MAPI") to return the Outlook NameSpace object from the Application object.
-
-The only data source supported is MAPI, which allows access to all Outlook data stored in the user's mail stores.
-
+=head1 METHODS for NameSpace objects
 
 =cut
 
@@ -4271,14 +4201,13 @@ The only data source supported is MAPI, which allows access to all Outlook data 
 #===============================================================================
 # Rinchi::Outlook::NameSpace::AddressLists
 
-=item $Element = $Object->AddressLists();
+=head2 $Element = $Object->AddressLists();
 
 Set or get value of the AddressLists attribute.
-
   
-Type: AddressLists
-Lower: 1
-Upper: 1
+ Type: AddressLists (Collection)
+ Lower: 1
+ Upper: 1
 
 =cut
 
@@ -4290,14 +4219,13 @@ sub AddressLists() {
 #===============================================================================
 # Rinchi::Outlook::NameSpace::Application
 
-=item $value = $Object->Application([$new_value]);
+=head2 $value = $Object->Application([$new_value]);
 
 Set or get value of the Application attribute.
-
   
-Type: Application
-Lower: 0
-Upper: 1
+ Type: Application
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -4317,14 +4245,13 @@ sub Application() {
 #===============================================================================
 # Rinchi::Outlook::NameSpace::Class
 
-=item $value = $Object->Class([$new_value]);
+=head2 $value = $Object->Class([$new_value]);
 
 Set or get value of the Class attribute.
-
   
-Type: OlObjectClass
-Lower: 0
-Upper: 1
+ Type: OlObjectClass
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -4347,14 +4274,13 @@ sub Class() {
 #===============================================================================
 # Rinchi::Outlook::NameSpace::CurrentUser
 
-=item $value = $Object->CurrentUser([$new_value]);
+=head2 $value = $Object->CurrentUser([$new_value]);
 
 Set or get value of the CurrentUser attribute.
-
   
-Type: Recipient
-Lower: 0
-Upper: 1
+ Type: Recipient
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -4374,14 +4300,13 @@ sub CurrentUser() {
 #===============================================================================
 # Rinchi::Outlook::NameSpace::ExchangeConnectionMode
 
-=item $value = $Object->ExchangeConnectionMode([$new_value]);
+=head2 $value = $Object->ExchangeConnectionMode([$new_value]);
 
 Set or get value of the ExchangeConnectionMode attribute.
-
   
-Type: OlExchangeConnectionMode
-Lower: 0
-Upper: 1
+ Type: OlExchangeConnectionMode
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -4404,14 +4329,13 @@ sub ExchangeConnectionMode() {
 #===============================================================================
 # Rinchi::Outlook::NameSpace::Folders
 
-=item $Element = $Object->Folders();
+=head2 $Element = $Object->Folders();
 
 Set or get value of the Folders attribute.
-
   
-Type: Folders
-Lower: 0
-Upper: 1
+ Type: Folders
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -4423,14 +4347,13 @@ sub Folders() {
 #===============================================================================
 # Rinchi::Outlook::NameSpace::Offline
 
-=item $value = $Object->Offline([$new_value]);
+=head2 $value = $Object->Offline([$new_value]);
 
 Set or get value of the Offline attribute.
-
   
-Type: Boolean
-Lower: 0
-Upper: 1
+ Type: Boolean
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -4449,14 +4372,13 @@ sub Offline() {
 #===============================================================================
 # Rinchi::Outlook::NameSpace::Parent
 
-=item $value = $Object->Parent([$new_value]);
+=head2 $value = $Object->Parent([$new_value]);
 
 Set or get value of the Parent attribute.
-
   
-Type: Object
-Lower: 0
-Upper: 1
+ Type: Object
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -4476,14 +4398,13 @@ sub Parent() {
 #===============================================================================
 # Rinchi::Outlook::NameSpace::Session
 
-=item $value = $Object->Session([$new_value]);
+=head2 $value = $Object->Session([$new_value]);
 
 Set or get value of the Session attribute.
-
   
-Type: NameSpace
-Lower: 0
-Upper: 1
+ Type: NameSpace
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -4503,14 +4424,13 @@ sub Session() {
 #===============================================================================
 # Rinchi::Outlook::NameSpace::SyncObjects
 
-=item $Element = $Object->SyncObjects();
+=head2 $Element = $Object->SyncObjects();
 
 Set or get value of the SyncObjects attribute.
 
-  
-Type: SyncObjects
-Lower: 0
-Upper: 1
+ Type: SyncObjects
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -4522,14 +4442,13 @@ sub SyncObjects() {
 #===============================================================================
 # Rinchi::Outlook::NameSpace::Type
 
-=item $value = $Object->Type([$new_value]);
+=head2 $value = $Object->Type([$new_value]);
 
 Set or get value of the Type attribute.
 
-  
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -4555,13 +4474,13 @@ our @ISA = qw(Rinchi::Outlook::Element Rinchi::Outlook::OutlookNamedEntry);
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of OutlookBarGroup class
 
-Rinchi::Outlook::OutlookBarGroup - Module for representing OutlookBarGroup objects.
+Rinchi::Outlook::OutlookBarGroup is used for representing OutlookBarGroup objects. 
+An OutlookBarGroup object represents a group of shortcuts in the Shortcuts pane 
+of an explorer window.
 
-=head1 DESCRIPTION of OutlookBarGroup
-
-  
+=head1 METHODS for OutlookBarGroup objects
 
 =cut
 
@@ -4575,14 +4494,13 @@ Rinchi::Outlook::OutlookBarGroup - Module for representing OutlookBarGroup objec
 #===============================================================================
 # Rinchi::Outlook::OutlookBarGroup::Shortcuts
 
-=item $Element = $Object->Shortcuts();
+=head2 $Element = $Object->Shortcuts();
 
 Set or get value of the Shortcuts attribute.
 
-  
-Type: OutlookBarShortcuts
-Lower: 0
-Upper: 1
+ Type: OutlookBarShortcuts (Collection)
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -4594,14 +4512,13 @@ sub Shortcuts() {
 #===============================================================================
 # Rinchi::Outlook::OutlookBarGroup::ViewType
 
-=item $value = $Object->ViewType([$new_value]);
+=head2 $value = $Object->ViewType([$new_value]);
 
 Set or get value of the ViewType attribute.
 
-  
-Type: OlOutlookBarViewType
-Lower: 0
-Upper: 1
+ Type: OlOutlookBarViewType
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -4635,13 +4552,12 @@ our @ISA = qw(Rinchi::Outlook::Element Rinchi::Outlook::BasicElement);
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of OutlookBarPane class
 
-Rinchi::Outlook::OutlookBarPane - Module for representing OutlookBarPane objects.
+Rinchi::Outlook::OutlookBarPane is used for representing OutlookBarPane objects.
+An OutlookBarPane object represents the Shortcuts pane in an explorer window.
 
-=head1 DESCRIPTION of OutlookBarPane
-
-  
+=head1 METHODS for OutlookBarPane objects
 
 =cut
 
@@ -4655,14 +4571,13 @@ Rinchi::Outlook::OutlookBarPane - Module for representing OutlookBarPane objects
 #===============================================================================
 # Rinchi::Outlook::OutlookBarPane::Application
 
-=item $value = $Object->Application([$new_value]);
+=head2 $value = $Object->Application([$new_value]);
 
 Set or get value of the Application attribute.
 
-  
-Type: Application
-Lower: 0
-Upper: 1
+ Type: Application
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -4682,14 +4597,13 @@ sub Application() {
 #===============================================================================
 # Rinchi::Outlook::OutlookBarPane::Class
 
-=item $value = $Object->Class([$new_value]);
+=head2 $value = $Object->Class([$new_value]);
 
 Set or get value of the Class attribute.
 
-  
-Type: OlObjectClass
-Lower: 0
-Upper: 1
+ Type: OlObjectClass
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -4712,14 +4626,13 @@ sub Class() {
 #===============================================================================
 # Rinchi::Outlook::OutlookBarPane::Contents
 
-=item $value = $Object->Contents([$new_value]);
+=head2 $value = $Object->Contents([$new_value]);
 
 Set or get value of the Contents attribute.
 
-  
-Type: OutlookBarStorage
-Lower: 0
-Upper: 1
+ Type: OutlookBarStorage
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -4739,14 +4652,13 @@ sub Contents() {
 #===============================================================================
 # Rinchi::Outlook::OutlookBarPane::CurrentGroup
 
-=item $value = $Object->CurrentGroup([$new_value]);
+=head2 $value = $Object->CurrentGroup([$new_value]);
 
 Set or get value of the CurrentGroup attribute.
 
-  
-Type: OutlookBarGroup
-Lower: 0
-Upper: 1
+ Type: OutlookBarGroup
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -4766,14 +4678,13 @@ sub CurrentGroup() {
 #===============================================================================
 # Rinchi::Outlook::OutlookBarPane::Name
 
-=item $value = $Object->Name([$new_value]);
+=head2 $value = $Object->Name([$new_value]);
 
 Set or get value of the Name attribute.
 
-  
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -4788,14 +4699,13 @@ sub Name() {
 #===============================================================================
 # Rinchi::Outlook::OutlookBarPane::Parent
 
-=item $value = $Object->Parent([$new_value]);
+=head2 $value = $Object->Parent([$new_value]);
 
 Set or get value of the Parent attribute.
 
-  
-Type: Object
-Lower: 0
-Upper: 1
+ Type: Object
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -4815,14 +4725,13 @@ sub Parent() {
 #===============================================================================
 # Rinchi::Outlook::OutlookBarPane::Session
 
-=item $value = $Object->Session([$new_value]);
+=head2 $value = $Object->Session([$new_value]);
 
 Set or get value of the Session attribute.
 
-  
-Type: NameSpace
-Lower: 0
-Upper: 1
+ Type: NameSpace
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -4842,14 +4751,13 @@ sub Session() {
 #===============================================================================
 # Rinchi::Outlook::OutlookBarPane::Visible
 
-=item $value = $Object->Visible([$new_value]);
+=head2 $value = $Object->Visible([$new_value]);
 
 Set or get value of the Visible attribute.
 
-  
-Type: Boolean
-Lower: 0
-Upper: 1
+ Type: Boolean
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -4879,13 +4787,11 @@ our @ISA = qw(Rinchi::Outlook::Element Rinchi::Outlook::OutlookNamedEntry);
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of OutlookBarShortcut class
 
-Rinchi::Outlook::OutlookBarShortcut - Module for representing OutlookBarShortcut objects.
+Rinchi::Outlook::OutlookBarShortcut is used for representing OutlookBarShortcut objects.
 
-=head1 DESCRIPTION of OutlookBarShortcut
-
-  
+=head1 METHODS for OutlookBarShortcut objects
 
 =cut
 
@@ -4899,14 +4805,14 @@ Rinchi::Outlook::OutlookBarShortcut - Module for representing OutlookBarShortcut
 #===============================================================================
 # Rinchi::Outlook::OutlookBarShortcut::Target
 
-=item $value = $Object->Target([$new_value]);
+=head2 $value = $Object->Target([$new_value]);
 
 Set or get value of the Target attribute.
 
   
-Type: Variant
-Lower: 0
-Upper: 1
+ Type: Variant
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -4937,13 +4843,11 @@ our @ISA = qw(Rinchi::Outlook::Element Rinchi::Outlook::BasicElement);
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of OutlookBarStorage class
 
-Rinchi::Outlook::OutlookBarStorage - Module for representing OutlookBarStorage objects.
+Rinchi::Outlook::OutlookBarStorage is used for representing OutlookBarStorage objects.
 
-=head1 DESCRIPTION of OutlookBarStorage
-
-  
+=head1 METHODS for OutlookBarStorage objects
 
 =cut
 
@@ -4957,14 +4861,14 @@ Rinchi::Outlook::OutlookBarStorage - Module for representing OutlookBarStorage o
 #===============================================================================
 # Rinchi::Outlook::OutlookBarStorage::Application
 
-=item $value = $Object->Application([$new_value]);
+=head2 $value = $Object->Application([$new_value]);
 
 Set or get value of the Application attribute.
 
   
-Type: Application
-Lower: 0
-Upper: 1
+ Type: Application
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -4984,14 +4888,14 @@ sub Application() {
 #===============================================================================
 # Rinchi::Outlook::OutlookBarStorage::Class
 
-=item $value = $Object->Class([$new_value]);
+=head2 $value = $Object->Class([$new_value]);
 
 Set or get value of the Class attribute.
 
   
-Type: OlObjectClass
-Lower: 0
-Upper: 1
+ Type: OlObjectClass
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -5014,14 +4918,14 @@ sub Class() {
 #===============================================================================
 # Rinchi::Outlook::OutlookBarStorage::Groups
 
-=item $value = $Object->Groups([$new_value]);
+=head2 $value = $Object->Groups([$new_value]);
 
 Set or get value of the Groups attribute.
 
   
-Type: 
-Lower: 0
-Upper: 1
+ Type: 
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -5041,14 +4945,14 @@ sub Groups() {
 #===============================================================================
 # Rinchi::Outlook::OutlookBarStorage::Parent
 
-=item $value = $Object->Parent([$new_value]);
+=head2 $value = $Object->Parent([$new_value]);
 
 Set or get value of the Parent attribute.
 
   
-Type: Object
-Lower: 0
-Upper: 1
+ Type: Object
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -5068,14 +4972,14 @@ sub Parent() {
 #===============================================================================
 # Rinchi::Outlook::OutlookBarStorage::Session
 
-=item $value = $Object->Session([$new_value]);
+=head2 $value = $Object->Session([$new_value]);
 
 Set or get value of the Session attribute.
 
   
-Type: NameSpace
-Lower: 0
-Upper: 1
+ Type: NameSpace
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -5106,13 +5010,11 @@ our @ISA = qw(Rinchi::Outlook::Element Rinchi::Outlook::OutlookEntry);
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of PropertyPageSite class
 
-Rinchi::Outlook::PropertyPageSite - Module for representing PropertyPageSite objects.
+Rinchi::Outlook::PropertyPageSite is used for representing PropertyPageSite objects.
 
-=head1 DESCRIPTION of PropertyPageSite
-
-  
+=head1 METHODS for PropertyPageSite objects
 
 =cut
 
@@ -5137,13 +5039,11 @@ our @ISA = qw(Rinchi::Outlook::Element Rinchi::Outlook::OutlookNamedEntry);
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of Recipient class
 
-Rinchi::Outlook::Recipient - Module for representing Recipient objects.
+Rinchi::Outlook::Recipient is used for representing Recipient objects.
 
-=head1 DESCRIPTION of Recipient
-
-  
+=head1 METHODS for Recipient objects
 
 =cut
 
@@ -5157,14 +5057,14 @@ Rinchi::Outlook::Recipient - Module for representing Recipient objects.
 #===============================================================================
 # Rinchi::Outlook::Recipient::Address
 
-=item $value = $Object->Address([$new_value]);
+=head2 $value = $Object->Address([$new_value]);
 
 Set or get value of the Address attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -5179,14 +5079,14 @@ sub Address() {
 #===============================================================================
 # Rinchi::Outlook::Recipient::AddressEntry
 
-=item $value = $Object->AddressEntry([$new_value]);
+=head2 $value = $Object->AddressEntry([$new_value]);
 
 Set or get value of the AddressEntry attribute.
 
   
-Type: AddressEntry
-Lower: 0
-Upper: 1
+ Type: AddressEntry
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -5206,14 +5106,14 @@ sub AddressEntry() {
 #===============================================================================
 # Rinchi::Outlook::Recipient::AutoResponse
 
-=item $value = $Object->AutoResponse([$new_value]);
+=head2 $value = $Object->AutoResponse([$new_value]);
 
 Set or get value of the AutoResponse attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -5228,14 +5128,14 @@ sub AutoResponse() {
 #===============================================================================
 # Rinchi::Outlook::Recipient::DisplayType
 
-=item $value = $Object->DisplayType([$new_value]);
+=head2 $value = $Object->DisplayType([$new_value]);
 
 Set or get value of the DisplayType attribute.
 
   
-Type: OlDisplayType
-Lower: 0
-Upper: 1
+ Type: OlDisplayType
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -5258,14 +5158,14 @@ sub DisplayType() {
 #===============================================================================
 # Rinchi::Outlook::Recipient::EntryID
 
-=item $value = $Object->EntryID([$new_value]);
+=head2 $value = $Object->EntryID([$new_value]);
 
 Set or get value of the EntryID attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -5280,14 +5180,14 @@ sub EntryID() {
 #===============================================================================
 # Rinchi::Outlook::Recipient::Index
 
-=item $value = $Object->Index([$new_value]);
+=head2 $value = $Object->Index([$new_value]);
 
 Set or get value of the Index attribute.
 
   
-Type: Long
-Lower: 0
-Upper: 1
+ Type: Long
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -5306,14 +5206,14 @@ sub Index() {
 #===============================================================================
 # Rinchi::Outlook::Recipient::MeetingResponseStatus
 
-=item $value = $Object->MeetingResponseStatus([$new_value]);
+=head2 $value = $Object->MeetingResponseStatus([$new_value]);
 
 Set or get value of the MeetingResponseStatus attribute.
 
   
-Type: OlResponseStatus
-Lower: 0
-Upper: 1
+ Type: OlResponseStatus
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -5336,14 +5236,14 @@ sub MeetingResponseStatus() {
 #===============================================================================
 # Rinchi::Outlook::Recipient::Resolved
 
-=item $value = $Object->Resolved([$new_value]);
+=head2 $value = $Object->Resolved([$new_value]);
 
 Set or get value of the Resolved attribute.
 
   
-Type: Boolean
-Lower: 0
-Upper: 1
+ Type: Boolean
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -5362,14 +5262,14 @@ sub Resolved() {
 #===============================================================================
 # Rinchi::Outlook::Recipient::TrackingStatus
 
-=item $value = $Object->TrackingStatus([$new_value]);
+=head2 $value = $Object->TrackingStatus([$new_value]);
 
 Set or get value of the TrackingStatus attribute.
 
   
-Type: OlTrackingStatus
-Lower: 0
-Upper: 1
+ Type: OlTrackingStatus
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -5392,14 +5292,14 @@ sub TrackingStatus() {
 #===============================================================================
 # Rinchi::Outlook::Recipient::TrackingStatusTime
 
-=item $value = $Object->TrackingStatusTime([$new_value]);
+=head2 $value = $Object->TrackingStatusTime([$new_value]);
 
 Set or get value of the TrackingStatusTime attribute.
 
   
-Type: VT_DATE
-Lower: 0
-Upper: 1
+ Type: VT_DATE
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -5414,14 +5314,14 @@ sub TrackingStatusTime() {
 #===============================================================================
 # Rinchi::Outlook::Recipient::Type
 
-=item $value = $Object->Type([$new_value]);
+=head2 $value = $Object->Type([$new_value]);
 
 Set or get value of the Type attribute.
 
   
-Type: Long
-Lower: 0
-Upper: 1
+ Type: Long
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -5451,13 +5351,11 @@ our @ISA = qw(Rinchi::Outlook::Element Rinchi::Outlook::BasicElement);
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of RecurrencePattern class
 
-Rinchi::Outlook::RecurrencePattern - Module for representing RecurrencePattern objects.
+Rinchi::Outlook::RecurrencePattern is used for representing RecurrencePattern objects.
 
-=head1 DESCRIPTION of RecurrencePattern
-
-  
+=head1 METHODS for RecurrencePattern objects
 
 =cut
 
@@ -5471,14 +5369,14 @@ Rinchi::Outlook::RecurrencePattern - Module for representing RecurrencePattern o
 #===============================================================================
 # Rinchi::Outlook::RecurrencePattern::Application
 
-=item $value = $Object->Application([$new_value]);
+=head2 $value = $Object->Application([$new_value]);
 
 Set or get value of the Application attribute.
 
   
-Type: Application
-Lower: 0
-Upper: 1
+ Type: Application
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -5498,14 +5396,14 @@ sub Application() {
 #===============================================================================
 # Rinchi::Outlook::RecurrencePattern::Class
 
-=item $value = $Object->Class([$new_value]);
+=head2 $value = $Object->Class([$new_value]);
 
 Set or get value of the Class attribute.
 
   
-Type: OlObjectClass
-Lower: 0
-Upper: 1
+ Type: OlObjectClass
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -5528,14 +5426,14 @@ sub Class() {
 #===============================================================================
 # Rinchi::Outlook::RecurrencePattern::DayOfMonth
 
-=item $value = $Object->DayOfMonth([$new_value]);
+=head2 $value = $Object->DayOfMonth([$new_value]);
 
 Set or get value of the DayOfMonth attribute.
 
   
-Type: Long
-Lower: 0
-Upper: 1
+ Type: Long
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -5554,14 +5452,14 @@ sub DayOfMonth() {
 #===============================================================================
 # Rinchi::Outlook::RecurrencePattern::DayOfWeekMask
 
-=item $value = $Object->DayOfWeekMask([$new_value]);
+=head2 $value = $Object->DayOfWeekMask([$new_value]);
 
 Set or get value of the DayOfWeekMask attribute.
 
   
-Type: OlDaysOfWeek
-Lower: 0
-Upper: 1
+ Type: OlDaysOfWeek
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -5584,14 +5482,14 @@ sub DayOfWeekMask() {
 #===============================================================================
 # Rinchi::Outlook::RecurrencePattern::Duration
 
-=item $value = $Object->Duration([$new_value]);
+=head2 $value = $Object->Duration([$new_value]);
 
 Set or get value of the Duration attribute.
 
   
-Type: Long
-Lower: 0
-Upper: 1
+ Type: Long
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -5610,14 +5508,14 @@ sub Duration() {
 #===============================================================================
 # Rinchi::Outlook::RecurrencePattern::EndTime
 
-=item $value = $Object->EndTime([$new_value]);
+=head2 $value = $Object->EndTime([$new_value]);
 
 Set or get value of the EndTime attribute.
 
   
-Type: VT_DATE
-Lower: 0
-Upper: 1
+ Type: VT_DATE
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -5632,14 +5530,14 @@ sub EndTime() {
 #===============================================================================
 # Rinchi::Outlook::RecurrencePattern::Exceptions
 
-=item $Element = $Object->Exceptions();
+=head2 $Element = $Object->Exceptions();
 
 Set or get value of the Exceptions attribute.
 
   
-Type: Exceptions
-Lower: 0
-Upper: 1
+ Type: Exceptions
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -5651,14 +5549,14 @@ sub Exceptions() {
 #===============================================================================
 # Rinchi::Outlook::RecurrencePattern::Instance
 
-=item $value = $Object->Instance([$new_value]);
+=head2 $value = $Object->Instance([$new_value]);
 
 Set or get value of the Instance attribute.
 
   
-Type: Long
-Lower: 0
-Upper: 1
+ Type: Long
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -5677,14 +5575,14 @@ sub Instance() {
 #===============================================================================
 # Rinchi::Outlook::RecurrencePattern::Interval
 
-=item $value = $Object->Interval([$new_value]);
+=head2 $value = $Object->Interval([$new_value]);
 
 Set or get value of the Interval attribute.
 
   
-Type: Long
-Lower: 0
-Upper: 1
+ Type: Long
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -5703,14 +5601,14 @@ sub Interval() {
 #===============================================================================
 # Rinchi::Outlook::RecurrencePattern::MonthOfYear
 
-=item $value = $Object->MonthOfYear([$new_value]);
+=head2 $value = $Object->MonthOfYear([$new_value]);
 
 Set or get value of the MonthOfYear attribute.
 
   
-Type: Long
-Lower: 0
-Upper: 1
+ Type: Long
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -5729,14 +5627,14 @@ sub MonthOfYear() {
 #===============================================================================
 # Rinchi::Outlook::RecurrencePattern::NoEndDate
 
-=item $value = $Object->NoEndDate([$new_value]);
+=head2 $value = $Object->NoEndDate([$new_value]);
 
 Set or get value of the NoEndDate attribute.
 
   
-Type: Boolean
-Lower: 0
-Upper: 1
+ Type: Boolean
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -5755,14 +5653,14 @@ sub NoEndDate() {
 #===============================================================================
 # Rinchi::Outlook::RecurrencePattern::Occurrences
 
-=item $value = $Object->Occurrences([$new_value]);
+=head2 $value = $Object->Occurrences([$new_value]);
 
 Set or get value of the Occurrences attribute.
 
   
-Type: Long
-Lower: 0
-Upper: 1
+ Type: Long
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -5781,14 +5679,14 @@ sub Occurrences() {
 #===============================================================================
 # Rinchi::Outlook::RecurrencePattern::Parent
 
-=item $value = $Object->Parent([$new_value]);
+=head2 $value = $Object->Parent([$new_value]);
 
 Set or get value of the Parent attribute.
 
   
-Type: Object
-Lower: 0
-Upper: 1
+ Type: Object
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -5808,14 +5706,14 @@ sub Parent() {
 #===============================================================================
 # Rinchi::Outlook::RecurrencePattern::PatternEndDate
 
-=item $value = $Object->PatternEndDate([$new_value]);
+=head2 $value = $Object->PatternEndDate([$new_value]);
 
 Set or get value of the PatternEndDate attribute.
 
   
-Type: VT_DATE
-Lower: 0
-Upper: 1
+ Type: VT_DATE
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -5830,14 +5728,14 @@ sub PatternEndDate() {
 #===============================================================================
 # Rinchi::Outlook::RecurrencePattern::PatternStartDate
 
-=item $value = $Object->PatternStartDate([$new_value]);
+=head2 $value = $Object->PatternStartDate([$new_value]);
 
 Set or get value of the PatternStartDate attribute.
 
   
-Type: VT_DATE
-Lower: 0
-Upper: 1
+ Type: VT_DATE
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -5852,14 +5750,14 @@ sub PatternStartDate() {
 #===============================================================================
 # Rinchi::Outlook::RecurrencePattern::RecurrenceType
 
-=item $value = $Object->RecurrenceType([$new_value]);
+=head2 $value = $Object->RecurrenceType([$new_value]);
 
 Set or get value of the RecurrenceType attribute.
 
   
-Type: OlRecurrenceType
-Lower: 0
-Upper: 1
+ Type: OlRecurrenceType
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -5882,14 +5780,14 @@ sub RecurrenceType() {
 #===============================================================================
 # Rinchi::Outlook::RecurrencePattern::Regenerate
 
-=item $value = $Object->Regenerate([$new_value]);
+=head2 $value = $Object->Regenerate([$new_value]);
 
 Set or get value of the Regenerate attribute.
 
   
-Type: Boolean
-Lower: 0
-Upper: 1
+ Type: Boolean
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -5908,14 +5806,14 @@ sub Regenerate() {
 #===============================================================================
 # Rinchi::Outlook::RecurrencePattern::Session
 
-=item $value = $Object->Session([$new_value]);
+=head2 $value = $Object->Session([$new_value]);
 
 Set or get value of the Session attribute.
 
   
-Type: NameSpace
-Lower: 0
-Upper: 1
+ Type: NameSpace
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -5935,14 +5833,14 @@ sub Session() {
 #===============================================================================
 # Rinchi::Outlook::RecurrencePattern::StartTime
 
-=item $value = $Object->StartTime([$new_value]);
+=head2 $value = $Object->StartTime([$new_value]);
 
 Set or get value of the StartTime attribute.
 
   
-Type: VT_DATE
-Lower: 0
-Upper: 1
+ Type: VT_DATE
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -5968,13 +5866,11 @@ our @ISA = qw(Rinchi::Outlook::Element Rinchi::Outlook::OutlookEntry);
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of Reminder class
 
-Rinchi::Outlook::Reminder - Module for representing Reminder objects.
+Rinchi::Outlook::Reminder is used for representing Reminder objects.
 
-=head1 DESCRIPTION of Reminder
-
-  
+=head1 METHODS for Reminder objects
 
 =cut
 
@@ -5988,14 +5884,14 @@ Rinchi::Outlook::Reminder - Module for representing Reminder objects.
 #===============================================================================
 # Rinchi::Outlook::Reminder::Caption
 
-=item $value = $Object->Caption([$new_value]);
+=head2 $value = $Object->Caption([$new_value]);
 
 Set or get value of the Caption attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -6010,14 +5906,14 @@ sub Caption() {
 #===============================================================================
 # Rinchi::Outlook::Reminder::IsVisible
 
-=item $value = $Object->IsVisible([$new_value]);
+=head2 $value = $Object->IsVisible([$new_value]);
 
 Set or get value of the IsVisible attribute.
 
   
-Type: Boolean
-Lower: 0
-Upper: 1
+ Type: Boolean
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -6036,14 +5932,14 @@ sub IsVisible() {
 #===============================================================================
 # Rinchi::Outlook::Reminder::Item
 
-=item $value = $Object->Item([$new_value]);
+=head2 $value = $Object->Item([$new_value]);
 
 Set or get value of the Item attribute.
 
   
-Type: Object
-Lower: 0
-Upper: 1
+ Type: Object
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -6063,14 +5959,14 @@ sub Item() {
 #===============================================================================
 # Rinchi::Outlook::Reminder::NextReminderDate
 
-=item $value = $Object->NextReminderDate([$new_value]);
+=head2 $value = $Object->NextReminderDate([$new_value]);
 
 Set or get value of the NextReminderDate attribute.
 
   
-Type: VT_DATE
-Lower: 0
-Upper: 1
+ Type: VT_DATE
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -6085,14 +5981,14 @@ sub NextReminderDate() {
 #===============================================================================
 # Rinchi::Outlook::Reminder::OriginalReminderDate
 
-=item $value = $Object->OriginalReminderDate([$new_value]);
+=head2 $value = $Object->OriginalReminderDate([$new_value]);
 
 Set or get value of the OriginalReminderDate attribute.
 
   
-Type: VT_DATE
-Lower: 0
-Upper: 1
+ Type: VT_DATE
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -6118,13 +6014,11 @@ our @ISA = qw(Rinchi::Outlook::Element Rinchi::Outlook::BasicElement);
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of Search class
 
-Rinchi::Outlook::Search - Module for representing Search objects.
+Rinchi::Outlook::Search is used for representing Search objects.
 
-=head1 DESCRIPTION of Search
-
-  
+=head1 METHODS for Search objects
 
 =cut
 
@@ -6138,14 +6032,14 @@ Rinchi::Outlook::Search - Module for representing Search objects.
 #===============================================================================
 # Rinchi::Outlook::Search::Application
 
-=item $value = $Object->Application([$new_value]);
+=head2 $value = $Object->Application([$new_value]);
 
 Set or get value of the Application attribute.
 
   
-Type: Application
-Lower: 0
-Upper: 1
+ Type: Application
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -6165,14 +6059,14 @@ sub Application() {
 #===============================================================================
 # Rinchi::Outlook::Search::Class
 
-=item $value = $Object->Class([$new_value]);
+=head2 $value = $Object->Class([$new_value]);
 
 Set or get value of the Class attribute.
 
   
-Type: OlObjectClass
-Lower: 0
-Upper: 1
+ Type: OlObjectClass
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -6195,14 +6089,14 @@ sub Class() {
 #===============================================================================
 # Rinchi::Outlook::Search::Filter
 
-=item $value = $Object->Filter([$new_value]);
+=head2 $value = $Object->Filter([$new_value]);
 
 Set or get value of the Filter attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -6217,14 +6111,14 @@ sub Filter() {
 #===============================================================================
 # Rinchi::Outlook::Search::IsSynchronous
 
-=item $value = $Object->IsSynchronous([$new_value]);
+=head2 $value = $Object->IsSynchronous([$new_value]);
 
 Set or get value of the IsSynchronous attribute.
 
   
-Type: Boolean
-Lower: 0
-Upper: 1
+ Type: Boolean
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -6243,14 +6137,14 @@ sub IsSynchronous() {
 #===============================================================================
 # Rinchi::Outlook::Search::Parent
 
-=item $value = $Object->Parent([$new_value]);
+=head2 $value = $Object->Parent([$new_value]);
 
 Set or get value of the Parent attribute.
 
   
-Type: Object
-Lower: 0
-Upper: 1
+ Type: Object
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -6270,14 +6164,14 @@ sub Parent() {
 #===============================================================================
 # Rinchi::Outlook::Search::Results
 
-=item $value = $Object->Results([$new_value]);
+=head2 $value = $Object->Results([$new_value]);
 
 Set or get value of the Results attribute.
 
   
-Type: 
-Lower: 0
-Upper: 1
+ Type: 
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -6297,14 +6191,14 @@ sub Results() {
 #===============================================================================
 # Rinchi::Outlook::Search::Scope
 
-=item $value = $Object->Scope([$new_value]);
+=head2 $value = $Object->Scope([$new_value]);
 
 Set or get value of the Scope attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -6319,14 +6213,14 @@ sub Scope() {
 #===============================================================================
 # Rinchi::Outlook::Search::SearchSubFolders
 
-=item $value = $Object->SearchSubFolders([$new_value]);
+=head2 $value = $Object->SearchSubFolders([$new_value]);
 
 Set or get value of the SearchSubFolders attribute.
 
   
-Type: Boolean
-Lower: 0
-Upper: 1
+ Type: Boolean
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -6345,14 +6239,14 @@ sub SearchSubFolders() {
 #===============================================================================
 # Rinchi::Outlook::Search::Session
 
-=item $value = $Object->Session([$new_value]);
+=head2 $value = $Object->Session([$new_value]);
 
 Set or get value of the Session attribute.
 
   
-Type: NameSpace
-Lower: 0
-Upper: 1
+ Type: NameSpace
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -6372,14 +6266,14 @@ sub Session() {
 #===============================================================================
 # Rinchi::Outlook::Search::Tag
 
-=item $value = $Object->Tag([$new_value]);
+=head2 $value = $Object->Tag([$new_value]);
 
 Set or get value of the Tag attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -6405,13 +6299,11 @@ our @ISA = qw(Rinchi::Outlook::Element Rinchi::Outlook::BasicElement);
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of Selection class
 
-Rinchi::Outlook::Selection - Module for representing Selection objects.
+Rinchi::Outlook::Selection is used for representing Selection objects.
 
-=head1 DESCRIPTION of Selection
-
-  
+=head1 METHODS for Selection objects
 
 =cut
 
@@ -6425,14 +6317,14 @@ Rinchi::Outlook::Selection - Module for representing Selection objects.
 #===============================================================================
 # Rinchi::Outlook::Selection::Application
 
-=item $value = $Object->Application([$new_value]);
+=head2 $value = $Object->Application([$new_value]);
 
 Set or get value of the Application attribute.
 
   
-Type: Application
-Lower: 0
-Upper: 1
+ Type: Application
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -6452,14 +6344,14 @@ sub Application() {
 #===============================================================================
 # Rinchi::Outlook::Selection::Class
 
-=item $value = $Object->Class([$new_value]);
+=head2 $value = $Object->Class([$new_value]);
 
 Set or get value of the Class attribute.
 
   
-Type: OlObjectClass
-Lower: 0
-Upper: 1
+ Type: OlObjectClass
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -6482,14 +6374,14 @@ sub Class() {
 #===============================================================================
 # Rinchi::Outlook::Selection::Count
 
-=item $value = $Object->Count([$new_value]);
+=head2 $value = $Object->Count([$new_value]);
 
 Set or get value of the Count attribute.
 
   
-Type: Long
-Lower: 0
-Upper: 1
+ Type: Long
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -6508,14 +6400,14 @@ sub Count() {
 #===============================================================================
 # Rinchi::Outlook::Selection::Parent
 
-=item $value = $Object->Parent([$new_value]);
+=head2 $value = $Object->Parent([$new_value]);
 
 Set or get value of the Parent attribute.
 
   
-Type: Object
-Lower: 0
-Upper: 1
+ Type: Object
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -6535,14 +6427,14 @@ sub Parent() {
 #===============================================================================
 # Rinchi::Outlook::Selection::Session
 
-=item $value = $Object->Session([$new_value]);
+=head2 $value = $Object->Session([$new_value]);
 
 Set or get value of the Session attribute.
 
   
-Type: NameSpace
-Lower: 0
-Upper: 1
+ Type: NameSpace
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -6573,13 +6465,11 @@ our @ISA = qw(Rinchi::Outlook::Element Rinchi::Outlook::OutlookNamedEntry);
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of SyncObject class
 
-Rinchi::Outlook::SyncObject - Module for representing SyncObject objects.
+Rinchi::Outlook::SyncObject is used for representing SyncObject objects.
 
-=head1 DESCRIPTION of SyncObject
-
-  
+=head1 METHODS for SyncObject objects
 
 =cut
 
@@ -6604,23 +6494,12 @@ our @ISA = qw(Rinchi::Outlook::Element Rinchi::Outlook::OutlookNamedEntry);
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of UserProperty class
 
-Rinchi::Outlook::UserProperty - Module for representing UserProperty objects.
+Rinchi::Outlook::UserProperty is used for representing UserProperty objects. A 
+UserProperty object represents a custom property of a Microsoft Outlook item.
 
-=head1 DESCRIPTION of UserProperty
-
-  Represents a custom property of a Microsoft Outlook item.
-Using The UserProperty Object
-
-Use UserProperties (index), where index is a name or index number, to return a single UserProperty object.
-
-Use the Add method to create a new UserProperty for an item and add it to the UserProperties object. The Add method allows you to specify a name and type for the new property. The following example adds a custom text property named MyPropName.
-
-Set myProp = myItem.UserProperties.Add("MyPropName", olText)
-		
-
-Note  When you create a custom property, a field is added in the folder that contains the item (using the same name as the property). That field can be used as a column in folder views.
+=head1 METHODS for UserProperty objects
 
 =cut
 
@@ -6634,14 +6513,14 @@ Note  When you create a custom property, a field is added in the folder that con
 #===============================================================================
 # Rinchi::Outlook::UserProperty::Formula
 
-=item $value = $Object->Formula([$new_value]);
+=head2 $value = $Object->Formula([$new_value]);
 
 Set or get value of the Formula attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -6656,14 +6535,14 @@ sub Formula() {
 #===============================================================================
 # Rinchi::Outlook::UserProperty::IsUserProperty
 
-=item $value = $Object->IsUserProperty([$new_value]);
+=head2 $value = $Object->IsUserProperty([$new_value]);
 
 Set or get value of the IsUserProperty attribute.
 
   
-Type: Boolean
-Lower: 0
-Upper: 1
+ Type: Boolean
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -6682,14 +6561,14 @@ sub IsUserProperty() {
 #===============================================================================
 # Rinchi::Outlook::UserProperty::Type
 
-=item $value = $Object->Type([$new_value]);
+=head2 $value = $Object->Type([$new_value]);
 
 Set or get value of the Type attribute.
 
   
-Type: OlUserPropertyType
-Lower: 0
-Upper: 1
+ Type: OlUserPropertyType
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -6712,14 +6591,14 @@ sub Type() {
 #===============================================================================
 # Rinchi::Outlook::UserProperty::ValidationFormula
 
-=item $value = $Object->ValidationFormula([$new_value]);
+=head2 $value = $Object->ValidationFormula([$new_value]);
 
 Set or get value of the ValidationFormula attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -6734,14 +6613,14 @@ sub ValidationFormula() {
 #===============================================================================
 # Rinchi::Outlook::UserProperty::ValidationText
 
-=item $value = $Object->ValidationText([$new_value]);
+=head2 $value = $Object->ValidationText([$new_value]);
 
 Set or get value of the ValidationText attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -6756,14 +6635,14 @@ sub ValidationText() {
 #===============================================================================
 # Rinchi::Outlook::UserProperty::Value
 
-=item $value = $Object->Value([$new_value]);
+=head2 $value = $Object->Value([$new_value]);
 
 Set or get value of the Value attribute.
 
   
-Type: Variant
-Lower: 0
-Upper: 1
+ Type: Variant
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -6794,13 +6673,11 @@ our @ISA = qw(Rinchi::Outlook::Element Rinchi::Outlook::OutlookNamedEntry);
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of View class
 
-Rinchi::Outlook::View - Module for representing View objects.
+Rinchi::Outlook::View is used for representing View objects.
 
-=head1 DESCRIPTION of View
-
-  
+=head1 METHODS for  View objects
 
 =cut
 
@@ -6814,14 +6691,14 @@ Rinchi::Outlook::View - Module for representing View objects.
 #===============================================================================
 # Rinchi::Outlook::View::Language
 
-=item $value = $Object->Language([$new_value]);
+=head2 $value = $Object->Language([$new_value]);
 
 Set or get value of the Language attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -6836,14 +6713,14 @@ sub Language() {
 #===============================================================================
 # Rinchi::Outlook::View::LockUserChanges
 
-=item $value = $Object->LockUserChanges([$new_value]);
+=head2 $value = $Object->LockUserChanges([$new_value]);
 
 Set or get value of the LockUserChanges attribute.
 
   
-Type: Boolean
-Lower: 0
-Upper: 1
+ Type: Boolean
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -6862,14 +6739,14 @@ sub LockUserChanges() {
 #===============================================================================
 # Rinchi::Outlook::View::SaveOption
 
-=item $value = $Object->SaveOption([$new_value]);
+=head2 $value = $Object->SaveOption([$new_value]);
 
 Set or get value of the SaveOption attribute.
 
   
-Type: OlViewSaveOption
-Lower: 0
-Upper: 1
+ Type: OlViewSaveOption
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -6892,14 +6769,14 @@ sub SaveOption() {
 #===============================================================================
 # Rinchi::Outlook::View::Standard
 
-=item $value = $Object->Standard([$new_value]);
+=head2 $value = $Object->Standard([$new_value]);
 
 Set or get value of the Standard attribute.
 
   
-Type: Boolean
-Lower: 0
-Upper: 1
+ Type: Boolean
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -6918,14 +6795,14 @@ sub Standard() {
 #===============================================================================
 # Rinchi::Outlook::View::ViewType
 
-=item $value = $Object->ViewType([$new_value]);
+=head2 $value = $Object->ViewType([$new_value]);
 
 Set or get value of the ViewType attribute.
 
   
-Type: OlViewType
-Lower: 0
-Upper: 1
+ Type: OlViewType
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -6948,14 +6825,14 @@ sub ViewType() {
 #===============================================================================
 # Rinchi::Outlook::View::XML
 
-=item $value = $Object->XML([$new_value]);
+=head2 $value = $Object->XML([$new_value]);
 
 Set or get value of the XML attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -6981,13 +6858,12 @@ our @ISA = qw(Rinchi::Outlook::Element Rinchi::Outlook::OutlookEntry);
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of OutlookNamedEntry class
 
-Rinchi::Outlook::OutlookNamedEntry - Module for representing OutlookNamedEntry objects.
+Rinchi::Outlook::OutlookNamedEntry is an abstract class representing 
+OutlookNamedEntry objects.
 
-=head1 DESCRIPTION of OutlookNamedEntry
-
-  
+=head1 METHODS for OutlookNamedEntry objects.
 
 =cut
 
@@ -7001,14 +6877,13 @@ Rinchi::Outlook::OutlookNamedEntry - Module for representing OutlookNamedEntry o
 #===============================================================================
 # Rinchi::Outlook::OutlookNamedEntry::Name
 
-=item $value = $Object->Name([$new_value]);
+=head2 $value = $Object->Name([$new_value]);
 
 Set or get value of the Name attribute.
 
-  
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -7034,13 +6909,11 @@ our @ISA = qw(Rinchi::Outlook::Element Rinchi::Outlook::BasicElement);
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of OutlookEntry class
 
-Rinchi::Outlook::OutlookEntry - Module for representing OutlookEntry objects.
+Rinchi::Outlook::OutlookEntry is an abstract class for representing OutlookEntry objects.
 
-=head1 DESCRIPTION of OutlookEntry
-
-  
+=head1 METHODS for OutlookEntry objects
 
 =cut
 
@@ -7054,14 +6927,13 @@ Rinchi::Outlook::OutlookEntry - Module for representing OutlookEntry objects.
 #===============================================================================
 # Rinchi::Outlook::OutlookEntry::Application
 
-=item $value = $Object->Application([$new_value]);
+=head2 $value = $Object->Application([$new_value]);
 
 Set or get value of the Application attribute.
 
-  
-Type: Application
-Lower: 0
-Upper: 1
+ Type: Application
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -7081,14 +6953,14 @@ sub Application() {
 #===============================================================================
 # Rinchi::Outlook::OutlookEntry::Class
 
-=item $value = $Object->Class([$new_value]);
+=head2 $value = $Object->Class([$new_value]);
 
 Set or get value of the Class attribute.
 
   
-Type: OlObjectClass
-Lower: 0
-Upper: 1
+ Type: OlObjectClass
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -7111,14 +6983,14 @@ sub Class() {
 #===============================================================================
 # Rinchi::Outlook::OutlookEntry::Parent
 
-=item $value = $Object->Parent([$new_value]);
+=head2 $value = $Object->Parent([$new_value]);
 
 Set or get value of the Parent attribute.
 
   
-Type: Object
-Lower: 0
-Upper: 1
+ Type: Object
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -7138,14 +7010,14 @@ sub Parent() {
 #===============================================================================
 # Rinchi::Outlook::OutlookEntry::Session
 
-=item $value = $Object->Session([$new_value]);
+=head2 $value = $Object->Session([$new_value]);
 
 Set or get value of the Session attribute.
 
   
-Type: NameSpace
-Lower: 0
-Upper: 1
+ Type: NameSpace
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -7166,626 +7038,6 @@ sub Session() {
 
 #===============================================================================
 # Generated by Hymnos Perl Code Generator
-# UML Model UUID: d5d9ec28-3c43-11dd-9164-001c25551abc
-
-package Rinchi::Outlook::ApplicationEvents;
-
-use Carp;
-
-our @ISA = qw(Rinchi::Outlook::Element Rinchi::Outlook::BasicElement);
-our @EXPORT = qw();
-our @EXPORT_OK = qw();
-
-=head1 NAME
-
-Rinchi::Outlook::ApplicationEvents - Module for representing ApplicationEvents objects.
-
-=head1 DESCRIPTION of ApplicationEvents
-
-  
-
-=cut
-
-#===============================================================================
-
-{
-  no strict "refs";
-  *TAG_NAME = sub { return 'application-events'; };
-}
-
-##END_PACKAGE ApplicationEvents
-
-#===============================================================================
-# Generated by Hymnos Perl Code Generator
-# UML Model UUID: d5d9fc18-3c43-11dd-960b-001c25551abc
-
-package Rinchi::Outlook::ApplicationEvents_10;
-
-use Carp;
-
-our @ISA = qw(Rinchi::Outlook::Element Rinchi::Outlook::BasicElement);
-our @EXPORT = qw();
-our @EXPORT_OK = qw();
-
-=head1 NAME
-
-Rinchi::Outlook::ApplicationEvents_10 - Module for representing ApplicationEvents_10 objects.
-
-=head1 DESCRIPTION of ApplicationEvents_10
-
-  
-
-=cut
-
-#===============================================================================
-
-{
-  no strict "refs";
-  *TAG_NAME = sub { return 'application-events_10'; };
-}
-
-##END_PACKAGE ApplicationEvents_10
-
-#===============================================================================
-# Generated by Hymnos Perl Code Generator
-# UML Model UUID: d5da0c9e-3c43-11dd-9430-001c25551abc
-
-package Rinchi::Outlook::ApplicationEvents_11;
-
-use Carp;
-
-our @ISA = qw(Rinchi::Outlook::Element Rinchi::Outlook::BasicElement);
-our @EXPORT = qw();
-our @EXPORT_OK = qw();
-
-=head1 NAME
-
-Rinchi::Outlook::ApplicationEvents_11 - Module for representing ApplicationEvents_11 objects.
-
-=head1 DESCRIPTION of ApplicationEvents_11
-
-  
-
-=cut
-
-#===============================================================================
-
-{
-  no strict "refs";
-  *TAG_NAME = sub { return 'application-events_11'; };
-}
-
-##END_PACKAGE ApplicationEvents_11
-
-#===============================================================================
-# Generated by Hymnos Perl Code Generator
-# UML Model UUID: d5db68be-3c43-11dd-8022-001c25551abc
-
-package Rinchi::Outlook::ExplorerEvents;
-
-use Carp;
-
-our @ISA = qw(Rinchi::Outlook::Element Rinchi::Outlook::BasicElement);
-our @EXPORT = qw();
-our @EXPORT_OK = qw();
-
-=head1 NAME
-
-Rinchi::Outlook::ExplorerEvents - Module for representing ExplorerEvents objects.
-
-=head1 DESCRIPTION of ExplorerEvents
-
-  
-
-=cut
-
-#===============================================================================
-
-{
-  no strict "refs";
-  *TAG_NAME = sub { return 'explorer-events'; };
-}
-
-##END_PACKAGE ExplorerEvents
-
-#===============================================================================
-# Generated by Hymnos Perl Code Generator
-# UML Model UUID: d5db7868-3c43-11dd-b482-001c25551abc
-
-package Rinchi::Outlook::ExplorerEvents_10;
-
-use Carp;
-
-our @ISA = qw(Rinchi::Outlook::Element Rinchi::Outlook::BasicElement);
-our @EXPORT = qw();
-our @EXPORT_OK = qw();
-
-=head1 NAME
-
-Rinchi::Outlook::ExplorerEvents_10 - Module for representing ExplorerEvents_10 objects.
-
-=head1 DESCRIPTION of ExplorerEvents_10
-
-  
-
-=cut
-
-#===============================================================================
-
-{
-  no strict "refs";
-  *TAG_NAME = sub { return 'explorer-events_10'; };
-}
-
-##END_PACKAGE ExplorerEvents_10
-
-#===============================================================================
-# Generated by Hymnos Perl Code Generator
-# UML Model UUID: d5dba82e-3c43-11dd-87b1-001c25551abc
-
-package Rinchi::Outlook::ExplorersEvents;
-
-use Carp;
-
-our @ISA = qw(Rinchi::Outlook::Element Rinchi::Outlook::BasicElement);
-our @EXPORT = qw();
-our @EXPORT_OK = qw();
-
-=head1 NAME
-
-Rinchi::Outlook::ExplorersEvents - Module for representing ExplorersEvents objects.
-
-=head1 DESCRIPTION of ExplorersEvents
-
-  
-
-=cut
-
-#===============================================================================
-
-{
-  no strict "refs";
-  *TAG_NAME = sub { return 'explorers-events'; };
-}
-
-##END_PACKAGE ExplorersEvents
-
-#===============================================================================
-# Generated by Hymnos Perl Code Generator
-# UML Model UUID: d5dbd8d0-3c43-11dd-b76d-001c25551abc
-
-package Rinchi::Outlook::FoldersEvents;
-
-use Carp;
-
-our @ISA = qw(Rinchi::Outlook::Element Rinchi::Outlook::BasicElement);
-our @EXPORT = qw();
-our @EXPORT_OK = qw();
-
-=head1 NAME
-
-Rinchi::Outlook::FoldersEvents - Module for representing FoldersEvents objects.
-
-=head1 DESCRIPTION of FoldersEvents
-
-  
-
-=cut
-
-#===============================================================================
-
-{
-  no strict "refs";
-  *TAG_NAME = sub { return 'folders-events'; };
-}
-
-##END_PACKAGE FoldersEvents
-
-#===============================================================================
-# Generated by Hymnos Perl Code Generator
-# UML Model UUID: d5dc1872-3c43-11dd-b7a2-001c25551abc
-
-package Rinchi::Outlook::InspectorEvents;
-
-use Carp;
-
-our @ISA = qw(Rinchi::Outlook::Element Rinchi::Outlook::BasicElement);
-our @EXPORT = qw();
-our @EXPORT_OK = qw();
-
-=head1 NAME
-
-Rinchi::Outlook::InspectorEvents - Module for representing InspectorEvents objects.
-
-=head1 DESCRIPTION of InspectorEvents
-
-  
-
-=cut
-
-#===============================================================================
-
-{
-  no strict "refs";
-  *TAG_NAME = sub { return 'inspector-events'; };
-}
-
-##END_PACKAGE InspectorEvents
-
-#===============================================================================
-# Generated by Hymnos Perl Code Generator
-# UML Model UUID: d5dc289e-3c43-11dd-b573-001c25551abc
-
-package Rinchi::Outlook::InspectorEvents_10;
-
-use Carp;
-
-our @ISA = qw(Rinchi::Outlook::Element Rinchi::Outlook::BasicElement);
-our @EXPORT = qw();
-our @EXPORT_OK = qw();
-
-=head1 NAME
-
-Rinchi::Outlook::InspectorEvents_10 - Module for representing InspectorEvents_10 objects.
-
-=head1 DESCRIPTION of InspectorEvents_10
-
-  
-
-=cut
-
-#===============================================================================
-
-{
-  no strict "refs";
-  *TAG_NAME = sub { return 'inspector-events_10'; };
-}
-
-##END_PACKAGE InspectorEvents_10
-
-#===============================================================================
-# Generated by Hymnos Perl Code Generator
-# UML Model UUID: d5dc5864-3c43-11dd-a1f3-001c25551abc
-
-package Rinchi::Outlook::InspectorsEvents;
-
-use Carp;
-
-our @ISA = qw(Rinchi::Outlook::Element Rinchi::Outlook::BasicElement);
-our @EXPORT = qw();
-our @EXPORT_OK = qw();
-
-=head1 NAME
-
-Rinchi::Outlook::InspectorsEvents - Module for representing InspectorsEvents objects.
-
-=head1 DESCRIPTION of InspectorsEvents
-
-  
-
-=cut
-
-#===============================================================================
-
-{
-  no strict "refs";
-  *TAG_NAME = sub { return 'inspectors-events'; };
-}
-
-##END_PACKAGE InspectorsEvents
-
-#===============================================================================
-# Generated by Hymnos Perl Code Generator
-# UML Model UUID: d5dc7808-3c43-11dd-ba03-001c25551abc
-
-package Rinchi::Outlook::ItemEvents_10;
-
-use Carp;
-
-our @ISA = qw(Rinchi::Outlook::Element Rinchi::Outlook::BasicElement);
-our @EXPORT = qw();
-our @EXPORT_OK = qw();
-
-=head1 NAME
-
-Rinchi::Outlook::ItemEvents_10 - Module for representing ItemEvents_10 objects.
-
-=head1 DESCRIPTION of ItemEvents_10
-
-  
-
-=cut
-
-#===============================================================================
-
-{
-  no strict "refs";
-  *TAG_NAME = sub { return 'item-events_10'; };
-}
-
-##END_PACKAGE ItemEvents_10
-
-#===============================================================================
-# Generated by Hymnos Perl Code Generator
-# UML Model UUID: d5dc67f0-3c43-11dd-a495-001c25551abc
-
-package Rinchi::Outlook::ItemEvents;
-
-use Carp;
-
-our @ISA = qw(Rinchi::Outlook::Element Rinchi::Outlook::BasicElement);
-our @EXPORT = qw();
-our @EXPORT_OK = qw();
-
-=head1 NAME
-
-Rinchi::Outlook::ItemEvents - Module for representing ItemEvents objects.
-
-=head1 DESCRIPTION of ItemEvents
-
-  
-
-=cut
-
-#===============================================================================
-
-{
-  no strict "refs";
-  *TAG_NAME = sub { return 'item-events'; };
-}
-
-##END_PACKAGE ItemEvents
-
-#===============================================================================
-# Generated by Hymnos Perl Code Generator
-# UML Model UUID: d5dcc7ae-3c43-11dd-b0d3-001c25551abc
-
-package Rinchi::Outlook::ItemsEvents;
-
-use Carp;
-
-our @ISA = qw(Rinchi::Outlook::Element Rinchi::Outlook::BasicElement);
-our @EXPORT = qw();
-our @EXPORT_OK = qw();
-
-=head1 NAME
-
-Rinchi::Outlook::ItemsEvents - Module for representing ItemsEvents objects.
-
-=head1 DESCRIPTION of ItemsEvents
-
-  
-
-=cut
-
-#===============================================================================
-
-{
-  no strict "refs";
-  *TAG_NAME = sub { return 'items-events'; };
-}
-
-##END_PACKAGE ItemsEvents
-
-#===============================================================================
-# Generated by Hymnos Perl Code Generator
-# UML Model UUID: d5dd8432-3c43-11dd-a9db-001c25551abc
-
-package Rinchi::Outlook::NameSpaceEvents;
-
-use Carp;
-
-our @ISA = qw(Rinchi::Outlook::Element Rinchi::Outlook::BasicElement);
-our @EXPORT = qw();
-our @EXPORT_OK = qw();
-
-=head1 NAME
-
-Rinchi::Outlook::NameSpaceEvents - Module for representing NameSpaceEvents objects.
-
-=head1 DESCRIPTION of NameSpaceEvents
-
-  
-
-=cut
-
-#===============================================================================
-
-{
-  no strict "refs";
-  *TAG_NAME = sub { return 'name-space-events'; };
-}
-
-##END_PACKAGE NameSpaceEvents
-
-#===============================================================================
-# Generated by Hymnos Perl Code Generator
-# UML Model UUID: d5dde1d4-3c43-11dd-a05d-001c25551abc
-
-package Rinchi::Outlook::OutlookBarGroupsEvents;
-
-use Carp;
-
-our @ISA = qw(Rinchi::Outlook::Element Rinchi::Outlook::BasicElement);
-our @EXPORT = qw();
-our @EXPORT_OK = qw();
-
-=head1 NAME
-
-Rinchi::Outlook::OutlookBarGroupsEvents - Module for representing OutlookBarGroupsEvents objects.
-
-=head1 DESCRIPTION of OutlookBarGroupsEvents
-
-  
-
-=cut
-
-#===============================================================================
-
-{
-  no strict "refs";
-  *TAG_NAME = sub { return 'outlook-bar-groups-events'; };
-}
-
-##END_PACKAGE OutlookBarGroupsEvents
-
-#===============================================================================
-# Generated by Hymnos Perl Code Generator
-# UML Model UUID: d5de1262-3c43-11dd-ad75-001c25551abc
-
-package Rinchi::Outlook::OutlookBarPaneEvents;
-
-use Carp;
-
-our @ISA = qw(Rinchi::Outlook::Element Rinchi::Outlook::BasicElement);
-our @EXPORT = qw();
-our @EXPORT_OK = qw();
-
-=head1 NAME
-
-Rinchi::Outlook::OutlookBarPaneEvents - Module for representing OutlookBarPaneEvents objects.
-
-=head1 DESCRIPTION of OutlookBarPaneEvents
-
-  
-
-=cut
-
-#===============================================================================
-
-{
-  no strict "refs";
-  *TAG_NAME = sub { return 'outlook-bar-pane-events'; };
-}
-
-##END_PACKAGE OutlookBarPaneEvents
-
-#===============================================================================
-# Generated by Hymnos Perl Code Generator
-# UML Model UUID: d5de5272-3c43-11dd-9a61-001c25551abc
-
-package Rinchi::Outlook::OutlookBarShortcutsEvents;
-
-use Carp;
-
-our @ISA = qw(Rinchi::Outlook::Element Rinchi::Outlook::BasicElement);
-our @EXPORT = qw();
-our @EXPORT_OK = qw();
-
-=head1 NAME
-
-Rinchi::Outlook::OutlookBarShortcutsEvents - Module for representing OutlookBarShortcutsEvents objects.
-
-=head1 DESCRIPTION of OutlookBarShortcutsEvents
-
-  
-
-=cut
-
-#===============================================================================
-
-{
-  no strict "refs";
-  *TAG_NAME = sub { return 'outlook-bar-shortcuts-events'; };
-}
-
-##END_PACKAGE OutlookBarShortcutsEvents
-
-#===============================================================================
-# Generated by Hymnos Perl Code Generator
-# UML Model UUID: d5df3264-3c43-11dd-ac35-001c25551abc
-
-package Rinchi::Outlook::ReminderCollectionEvents;
-
-use Carp;
-
-our @ISA = qw(Rinchi::Outlook::Element Rinchi::Outlook::BasicElement);
-our @EXPORT = qw();
-our @EXPORT_OK = qw();
-
-=head1 NAME
-
-Rinchi::Outlook::ReminderCollectionEvents - Module for representing ReminderCollectionEvents objects.
-
-=head1 DESCRIPTION of ReminderCollectionEvents
-
-  
-
-=cut
-
-#===============================================================================
-
-{
-  no strict "refs";
-  *TAG_NAME = sub { return 'reminder-collection-events'; };
-}
-
-##END_PACKAGE ReminderCollectionEvents
-
-#===============================================================================
-# Generated by Hymnos Perl Code Generator
-# UML Model UUID: d5dfc1b6-3c43-11dd-a7fa-001c25551abc
-
-package Rinchi::Outlook::ResultsEvents;
-
-use Carp;
-
-our @ISA = qw(Rinchi::Outlook::Element Rinchi::Outlook::BasicElement);
-our @EXPORT = qw();
-our @EXPORT_OK = qw();
-
-=head1 NAME
-
-Rinchi::Outlook::ResultsEvents - Module for representing ResultsEvents objects.
-
-=head1 DESCRIPTION of ResultsEvents
-
-  
-
-=cut
-
-#===============================================================================
-
-{
-  no strict "refs";
-  *TAG_NAME = sub { return 'results-events'; };
-}
-
-##END_PACKAGE ResultsEvents
-
-#===============================================================================
-# Generated by Hymnos Perl Code Generator
-# UML Model UUID: d5e01936-3c43-11dd-8cc5-001c25551abc
-
-package Rinchi::Outlook::SyncObjectEvents;
-
-use Carp;
-
-our @ISA = qw(Rinchi::Outlook::Element Rinchi::Outlook::BasicElement);
-our @EXPORT = qw();
-our @EXPORT_OK = qw();
-
-=head1 NAME
-
-Rinchi::Outlook::SyncObjectEvents - Module for representing SyncObjectEvents objects.
-
-=head1 DESCRIPTION of SyncObjectEvents
-
-  
-
-=cut
-
-#===============================================================================
-
-{
-  no strict "refs";
-  *TAG_NAME = sub { return 'sync-object-events'; };
-}
-
-##END_PACKAGE SyncObjectEvents
-
-#===============================================================================
-# Generated by Hymnos Perl Code Generator
 # UML Model UUID: 17e7d2fd-3cc7-11dd-9836-00502c05c241
 
 package Rinchi::Outlook::OutlookCollection;
@@ -7796,13 +7048,11 @@ our @ISA = qw(Rinchi::Outlook::Element Rinchi::Outlook::BasicElement);
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
-
-Rinchi::Outlook::OutlookCollection - Module for representing OutlookCollection objects.
-
 =head1 DESCRIPTION of OutlookCollection
 
-  
+Rinchi::Outlook::OutlookCollection is used for representing OutlookCollection objects.
+
+=head1 METHODS for OutlookCollection objects
 
 =cut
 
@@ -7816,14 +7066,13 @@ Rinchi::Outlook::OutlookCollection - Module for representing OutlookCollection o
 #===============================================================================
 # Rinchi::Outlook::OutlookCollection::Application
 
-=item $value = $Object->Application([$new_value]);
+=head2 $value = $Object->Application([$new_value]);
 
 Set or get value of the Application attribute.
 
-  
-Type: Application
-Lower: 0
-Upper: 1
+ Type: Application
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -7843,14 +7092,13 @@ sub Application() {
 #===============================================================================
 # Rinchi::Outlook::OutlookCollection::Class
 
-=item $value = $Object->Class([$new_value]);
+=head2 $value = $Object->Class([$new_value]);
 
 Set or get value of the Class attribute.
 
-  
-Type: OlObjectClass
-Lower: 0
-Upper: 1
+ Type: OlObjectClass
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -7873,14 +7121,13 @@ sub Class() {
 #===============================================================================
 # Rinchi::Outlook::OutlookCollection::Count
 
-=item $value = $Object->Count([$new_value]);
+=head2 $value = $Object->Count([$new_value]);
 
 Set or get value of the Count attribute.
 
-  
-Type: Long
-Lower: 0
-Upper: 1
+ Type: Long
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -7899,14 +7146,13 @@ sub Count() {
 #===============================================================================
 # Rinchi::Outlook::OutlookCollection::Parent
 
-=item $value = $Object->Parent([$new_value]);
+=head2 $value = $Object->Parent([$new_value]);
 
 Set or get value of the Parent attribute.
 
-  
-Type: Object
-Lower: 0
-Upper: 1
+ Type: Object
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -7926,14 +7172,13 @@ sub Parent() {
 #===============================================================================
 # Rinchi::Outlook::OutlookCollection::Session
 
-=item $value = $Object->Session([$new_value]);
+=head2 $value = $Object->Session([$new_value]);
 
 Set or get value of the Session attribute.
 
-  
-Type: NameSpace
-Lower: 0
-Upper: 1
+ Type: NameSpace
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -7964,13 +7209,11 @@ our @ISA = qw(Rinchi::Outlook::Element Rinchi::Outlook::OutlookCollection);
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of Items class
 
-Rinchi::Outlook::Items - Module for representing Items objects.
+Rinchi::Outlook::Items is used for representing Items objects.
 
-=head1 DESCRIPTION of Items
-
-  
+=head1 METHODS for Items objects
 
 =cut
 
@@ -7984,14 +7227,13 @@ Rinchi::Outlook::Items - Module for representing Items objects.
 #===============================================================================
 # Rinchi::Outlook::Items::IncludeRecurrences
 
-=item $value = $Object->IncludeRecurrences([$new_value]);
+=head2 $value = $Object->IncludeRecurrences([$new_value]);
 
 Set or get value of the IncludeRecurrences attribute.
-
   
-Type: Boolean
-Lower: 0
-Upper: 1
+ Type: Boolean
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -8010,14 +7252,13 @@ sub IncludeRecurrences() {
 #===============================================================================
 # Rinchi::Outlook::Items::RawTable
 
-=item $value = $Object->RawTable([$new_value]);
+=head2 $value = $Object->RawTable([$new_value]);
 
 Set or get value of the RawTable attribute.
-
   
-Type: Unknown
-Lower: 0
-Upper: 1
+ Type: Unknown
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -8048,13 +7289,11 @@ our @ISA = qw(Rinchi::Outlook::Element Rinchi::Outlook::OutlookCollection);
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of Links class
 
-Rinchi::Outlook::Links - Module for representing Links objects.
+Rinchi::Outlook::Links is used for representing Links objects.
 
-=head1 DESCRIPTION of Links
-
-  
+=head1 METHODS for Links objects
 
 =cut
 
@@ -8068,13 +7307,11 @@ Rinchi::Outlook::Links - Module for representing Links objects.
 #===============================================================================
 # Rinchi::Outlook::Link::link
 
-=item $arrayref = $Object->link();
+=head2 $arrayref = $Object->link();
 
 Returns a reference to an array of the contained Link objects.
-Get values of the link property.
-
   
-Type: 
+ Type: 
 
 =cut
 
@@ -8086,12 +7323,12 @@ sub link() {
 #===============================================================================
 # Rinchi::Outlook::Link::link
 
-=item $value = $Object->push_link([$new_value]);
+=head2 $value = $Object->push_link([$new_value]);
 
 Set or get value of the link attribute.
 
   
-Type: 
+ Type: 
 
 =cut
 
@@ -8118,13 +7355,11 @@ our @ISA = qw(Rinchi::Outlook::Element Rinchi::Outlook::OutlookCollection);
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of Explorers class
 
-Rinchi::Outlook::Explorers - Module for representing Explorers objects.
+Rinchi::Outlook::Explorers is used for representing Explorers objects.
 
-=head1 DESCRIPTION of Explorers
-
-  
+=head1 METHODS for Explorers objects
 
 =cut
 
@@ -8138,13 +7373,13 @@ Rinchi::Outlook::Explorers - Module for representing Explorers objects.
 #===============================================================================
 # Rinchi::Outlook::Explorer::Explorer
 
-=item $arrayref = $Object->Explorer();
+=head2 $arrayref = $Object->Explorer();
 
 Returns a reference to an array of the contained Explorer objects.
 Get values of the Explorer property.
 
   
-Type: 
+ Type: 
 
 =cut
 
@@ -8156,12 +7391,11 @@ sub Explorer() {
 #===============================================================================
 # Rinchi::Outlook::Explorer::Explorer
 
-=item $value = $Object->push_Explorer([$new_value]);
+=head2 $value = $Object->push_Explorer([$new_value]);
 
 Set or get value of the Explorer attribute.
-
   
-Type: 
+ Type: 
 
 =cut
 
@@ -8188,13 +7422,11 @@ our @ISA = qw(Rinchi::Outlook::Element Rinchi::Outlook::OutlookCollection);
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
-
-Rinchi::Outlook::AddressEntries - Module for representing AddressEntries objects.
-
 =head1 DESCRIPTION of AddressEntries
 
-  
+Rinchi::Outlook::AddressEntries is used for representing AddressEntries objects.
+
+=head1 METHODS for AddressEntries objects
 
 =cut
 
@@ -8208,14 +7440,14 @@ Rinchi::Outlook::AddressEntries - Module for representing AddressEntries objects
 #===============================================================================
 # Rinchi::Outlook::AddressEntries::RawTable
 
-=item $value = $Object->RawTable([$new_value]);
+=head2 $value = $Object->RawTable([$new_value]);
 
 Set or get value of the RawTable attribute.
 
   
-Type: Unknown
-Lower: 0
-Upper: 1
+ Type: Unknown
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -8235,13 +7467,13 @@ sub RawTable() {
 #===============================================================================
 # Rinchi::Outlook::AddressEntry::addressEntry
 
-=item $arrayref = $Object->addressEntry();
+=head2 $arrayref = $Object->addressEntry();
 
 Returns a reference to an array of the contained AddressEntry objects.
 Get values of the addressEntry property.
 
   
-Type: 
+ Type: 
 
 =cut
 
@@ -8253,12 +7485,12 @@ sub addressEntry() {
 #===============================================================================
 # Rinchi::Outlook::AddressEntry::addressEntry
 
-=item $value = $Object->push_addressEntry([$new_value]);
+=head2 $value = $Object->push_addressEntry([$new_value]);
 
 Set or get value of the addressEntry attribute.
 
   
-Type: 
+ Type: 
 
 =cut
 
@@ -8285,13 +7517,11 @@ our @ISA = qw(Rinchi::Outlook::Element Rinchi::Outlook::OutlookCollection);
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of AddressLists class
 
-Rinchi::Outlook::AddressLists - Module for representing AddressLists objects.
+Rinchi::Outlook::AddressLists is used for representing AddressLists objects.
 
-=head1 DESCRIPTION of AddressLists
-
-  
+=head1 METHODS for AddressLists objects
 
 =cut
 
@@ -8305,13 +7535,13 @@ Rinchi::Outlook::AddressLists - Module for representing AddressLists objects.
 #===============================================================================
 # Rinchi::Outlook::AddressList::addressList
 
-=item $arrayref = $Object->addressList();
+=head2 $arrayref = $Object->addressList();
 
 Returns a reference to an array of the contained AddressList objects.
 Get values of the addressList property.
 
   
-Type: 
+ Type: 
 
 =cut
 
@@ -8323,12 +7553,12 @@ sub addressList() {
 #===============================================================================
 # Rinchi::Outlook::AddressList::addressList
 
-=item $value = $Object->push_addressList([$new_value]);
+=head2 $value = $Object->push_addressList([$new_value]);
 
 Set or get value of the addressList attribute.
 
   
-Type: 
+ Type: 
 
 =cut
 
@@ -8355,13 +7585,11 @@ our @ISA = qw(Rinchi::Outlook::Element Rinchi::Outlook::OutlookCollection);
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
-
-Rinchi::Outlook::Actions - Module for representing Actions objects.
-
 =head1 DESCRIPTION of Actions
 
-  
+Rinchi::Outlook::Actions is used for representing Actions objects.
+
+=head1 METHODS for Actions objects
 
 =cut
 
@@ -8375,13 +7603,13 @@ Rinchi::Outlook::Actions - Module for representing Actions objects.
 #===============================================================================
 # Rinchi::Outlook::Action::action
 
-=item $arrayref = $Object->action();
+=head2 $arrayref = $Object->action();
 
 Returns a reference to an array of the contained Action objects.
 Get values of the action property.
 
   
-Type: 
+ Type: 
 
 =cut
 
@@ -8393,12 +7621,12 @@ sub action() {
 #===============================================================================
 # Rinchi::Outlook::Action::action
 
-=item $value = $Object->push_action([$new_value]);
+=head2 $value = $Object->push_action([$new_value]);
 
 Set or get value of the action attribute.
 
   
-Type: 
+ Type: 
 
 =cut
 
@@ -8425,13 +7653,11 @@ our @ISA = qw(Rinchi::Outlook::Element Rinchi::Outlook::OutlookCollection);
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
-
-Rinchi::Outlook::Attachments - Module for representing Attachments objects.
-
 =head1 DESCRIPTION of Attachments
 
-  
+Rinchi::Outlook::Attachments is used for representing Attachments objects.
+
+=head1 METHODS for Attachments objects
 
 =cut
 
@@ -8445,13 +7671,13 @@ Rinchi::Outlook::Attachments - Module for representing Attachments objects.
 #===============================================================================
 # Rinchi::Outlook::Attachment::attachment
 
-=item $arrayref = $Object->attachment();
+=head2 $arrayref = $Object->attachment();
 
 Returns a reference to an array of the contained Attachment objects.
 Get values of the attachment property.
 
   
-Type: 
+ Type: 
 
 =cut
 
@@ -8463,12 +7689,12 @@ sub attachment() {
 #===============================================================================
 # Rinchi::Outlook::Attachment::attachment
 
-=item $value = $Object->push_attachment([$new_value]);
+=head2 $value = $Object->push_attachment([$new_value]);
 
 Set or get value of the attachment attribute.
 
   
-Type: 
+ Type: 
 
 =cut
 
@@ -8495,13 +7721,11 @@ our @ISA = qw(Rinchi::Outlook::Element Rinchi::Outlook::OutlookCollection);
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of Conflicts class
 
-Rinchi::Outlook::Conflicts - Module for representing Conflicts objects.
+Rinchi::Outlook::Conflicts is used for representing Conflicts objects.
 
-=head1 DESCRIPTION of Conflicts
-
-  
+=head1 METHODS for Conflicts objects
 
 =cut
 
@@ -8515,13 +7739,13 @@ Rinchi::Outlook::Conflicts - Module for representing Conflicts objects.
 #===============================================================================
 # Rinchi::Outlook::Conflict::Conflict
 
-=item $arrayref = $Object->Conflict();
+=head2 $arrayref = $Object->Conflict();
 
 Returns a reference to an array of the contained Conflict objects.
 Get values of the Conflict property.
 
   
-Type: 
+ Type: 
 
 =cut
 
@@ -8533,12 +7757,12 @@ sub Conflict() {
 #===============================================================================
 # Rinchi::Outlook::Conflict::Conflict
 
-=item $value = $Object->push_Conflict([$new_value]);
+=head2 $value = $Object->push_Conflict([$new_value]);
 
 Set or get value of the Conflict attribute.
 
   
-Type: 
+ Type: 
 
 =cut
 
@@ -8565,13 +7789,11 @@ our @ISA = qw(Rinchi::Outlook::Element Rinchi::Outlook::OutlookCollection);
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of Exceptions class
 
-Rinchi::Outlook::Exceptions - Module for representing Exceptions objects.
+Rinchi::Outlook::Exceptions is used for representing Exceptions objects.
 
-=head1 DESCRIPTION of Exceptions
-
-  
+=head1 METHODS for Exceptions objects
 
 =cut
 
@@ -8585,13 +7807,13 @@ Rinchi::Outlook::Exceptions - Module for representing Exceptions objects.
 #===============================================================================
 # Rinchi::Outlook::Exception::Exception
 
-=item $arrayref = $Object->Exception();
+=head2 $arrayref = $Object->Exception();
 
 Returns a reference to an array of the contained Exception objects.
 Get values of the Exception property.
 
   
-Type: 
+ Type: 
 
 =cut
 
@@ -8603,12 +7825,12 @@ sub Exception() {
 #===============================================================================
 # Rinchi::Outlook::Exception::Exception
 
-=item $value = $Object->push_Exception([$new_value]);
+=head2 $value = $Object->push_Exception([$new_value]);
 
 Set or get value of the Exception attribute.
 
   
-Type: 
+ Type: 
 
 =cut
 
@@ -8635,13 +7857,11 @@ our @ISA = qw(Rinchi::Outlook::Element Rinchi::Outlook::OutlookCollection);
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of Inspectors class
 
-Rinchi::Outlook::Inspectors - Module for representing Inspectors objects.
+Rinchi::Outlook::Inspectors is used for representing Inspectors objects.
 
-=head1 DESCRIPTION of Inspectors
-
-  
+=head1 METHODS for Inspectors objects
 
 =cut
 
@@ -8655,13 +7875,13 @@ Rinchi::Outlook::Inspectors - Module for representing Inspectors objects.
 #===============================================================================
 # Rinchi::Outlook::Inspector::inspector
 
-=item $arrayref = $Object->inspector();
+=head2 $arrayref = $Object->inspector();
 
 Returns a reference to an array of the contained Inspector objects.
 Get values of the inspector property.
 
   
-Type: 
+ Type: 
 
 =cut
 
@@ -8673,12 +7893,12 @@ sub inspector() {
 #===============================================================================
 # Rinchi::Outlook::Inspector::inspector
 
-=item $value = $Object->push_inspector([$new_value]);
+=head2 $value = $Object->push_inspector([$new_value]);
 
 Set or get value of the inspector attribute.
 
   
-Type: 
+ Type: 
 
 =cut
 
@@ -8705,13 +7925,11 @@ our @ISA = qw(Rinchi::Outlook::Element Rinchi::Outlook::OutlookCollection);
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of ItemProperties class
 
-Rinchi::Outlook::ItemProperties - Module for representing ItemProperties objects.
+Rinchi::Outlook::ItemProperties is used for representing ItemProperties objects.
 
-=head1 DESCRIPTION of ItemProperties
-
-  
+=head1 METHODS for ItemProperties objects
 
 =cut
 
@@ -8725,13 +7943,13 @@ Rinchi::Outlook::ItemProperties - Module for representing ItemProperties objects
 #===============================================================================
 # Rinchi::Outlook::ItemProperty::itemProperty
 
-=item $arrayref = $Object->itemProperty();
+=head2 $arrayref = $Object->itemProperty();
 
 Returns a reference to an array of the contained ItemProperty objects.
 Get values of the itemProperty property.
 
   
-Type: 
+ Type: 
 
 =cut
 
@@ -8743,12 +7961,12 @@ sub itemProperty() {
 #===============================================================================
 # Rinchi::Outlook::ItemProperty::itemProperty
 
-=item $value = $Object->push_itemProperty([$new_value]);
+=head2 $value = $Object->push_itemProperty([$new_value]);
 
 Set or get value of the itemProperty attribute.
 
   
-Type: 
+ Type: 
 
 =cut
 
@@ -8775,13 +7993,11 @@ our @ISA = qw(Rinchi::Outlook::Element Rinchi::Outlook::OutlookCollection);
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
-
-Rinchi::Outlook::OutlookBarGroups - Module for representing OutlookBarGroups objects.
-
 =head1 DESCRIPTION of OutlookBarGroups
 
-  
+Rinchi::Outlook::OutlookBarGroups is used for representing OutlookBarGroups objects.
+
+=head1 METHODS for OutlookBarGroups objects
 
 =cut
 
@@ -8795,13 +8011,13 @@ Rinchi::Outlook::OutlookBarGroups - Module for representing OutlookBarGroups obj
 #===============================================================================
 # Rinchi::Outlook::OutlookBarGroup::outlookBarGroup
 
-=item $arrayref = $Object->outlookBarGroup();
+=head2 $arrayref = $Object->outlookBarGroup();
 
 Returns a reference to an array of the contained OutlookBarGroup objects.
 Get values of the outlookBarGroup property.
 
   
-Type: 
+ Type: 
 
 =cut
 
@@ -8813,12 +8029,12 @@ sub outlookBarGroup() {
 #===============================================================================
 # Rinchi::Outlook::OutlookBarGroup::outlookBarGroup
 
-=item $value = $Object->push_outlookBarGroup([$new_value]);
+=head2 $value = $Object->push_outlookBarGroup([$new_value]);
 
 Set or get value of the outlookBarGroup attribute.
 
   
-Type: 
+ Type: 
 
 =cut
 
@@ -8845,13 +8061,11 @@ our @ISA = qw(Rinchi::Outlook::Element Rinchi::Outlook::OutlookCollection);
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of OutlookBarShortcuts class
 
-Rinchi::Outlook::OutlookBarShortcuts - Module for representing OutlookBarShortcuts objects.
+Rinchi::Outlook::OutlookBarShortcuts is used for representing OutlookBarShortcuts objects.
 
-=head1 DESCRIPTION of OutlookBarShortcuts
-
-  
+=head1 METHODS for OutlookBarShortcuts objects
 
 =cut
 
@@ -8865,13 +8079,13 @@ Rinchi::Outlook::OutlookBarShortcuts - Module for representing OutlookBarShortcu
 #===============================================================================
 # Rinchi::Outlook::OutlookBarShortcut::outlookBarShortcut
 
-=item $arrayref = $Object->outlookBarShortcut();
+=head2 $arrayref = $Object->outlookBarShortcut();
 
 Returns a reference to an array of the contained OutlookBarShortcut objects.
 Get values of the outlookBarShortcut property.
 
   
-Type: 
+ Type: 
 
 =cut
 
@@ -8883,12 +8097,12 @@ sub outlookBarShortcut() {
 #===============================================================================
 # Rinchi::Outlook::OutlookBarShortcut::outlookBarShortcut
 
-=item $value = $Object->push_outlookBarShortcut([$new_value]);
+=head2 $value = $Object->push_outlookBarShortcut([$new_value]);
 
 Set or get value of the outlookBarShortcut attribute.
 
   
-Type: 
+ Type: 
 
 =cut
 
@@ -8915,13 +8129,11 @@ our @ISA = qw(Rinchi::Outlook::Element Rinchi::Outlook::OutlookCollection);
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
-
-Rinchi::Outlook::Pages - Module for representing Pages objects.
-
 =head1 DESCRIPTION of Pages
 
-  
+Rinchi::Outlook::Pages is used for representing Pages objects.
+
+=head1 METHODS for 
 
 =cut
 
@@ -8946,13 +8158,11 @@ our @ISA = qw(Rinchi::Outlook::Element Rinchi::Outlook::OutlookCollection);
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
-
-Rinchi::Outlook::Panes - Module for representing Panes objects.
-
 =head1 DESCRIPTION of Panes
 
-  
+Rinchi::Outlook::Panes is used for representing Panes objects.
+
+=head1 METHODS for 
 
 =cut
 
@@ -8977,15 +8187,13 @@ our @ISA = qw(Rinchi::Outlook::Element Rinchi::Outlook::OutlookCollection);
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
-
-Rinchi::Outlook::PropertyPages - Module for representing PropertyPages objects.
-
 =head1 DESCRIPTION of PropertyPages
 
-  
+Rinchi::Outlook::PropertyPages is used for representing PropertyPages objects.
 
-=cut
+=head1 METHODS for 
+
+cut
 
 #===============================================================================
 
@@ -8997,13 +8205,13 @@ Rinchi::Outlook::PropertyPages - Module for representing PropertyPages objects.
 #===============================================================================
 # Rinchi::Outlook::PropertyPageSite::propertyPage
 
-=item $arrayref = $Object->propertyPage();
+=head2 $arrayref = $Object->propertyPage();
 
 Returns a reference to an array of the contained PropertyPageSite objects.
 Get values of the propertyPage property.
 
   
-Type: 
+ Type: 
 
 =cut
 
@@ -9015,12 +8223,12 @@ sub propertyPage() {
 #===============================================================================
 # Rinchi::Outlook::PropertyPageSite::propertyPage
 
-=item $value = $Object->push_propertyPage([$new_value]);
+=head2 $value = $Object->push_propertyPage([$new_value]);
 
 Set or get value of the propertyPage attribute.
 
   
-Type: 
+ Type: 
 
 =cut
 
@@ -9047,13 +8255,11 @@ our @ISA = qw(Rinchi::Outlook::Element Rinchi::Outlook::OutlookCollection);
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
-
-Rinchi::Outlook::Recipients - Module for representing Recipients objects.
-
 =head1 DESCRIPTION of Recipients
 
-  
+Rinchi::Outlook::Recipients is used for representing Recipients objects.
+
+=head1 METHODS for Recipients objects
 
 =cut
 
@@ -9067,13 +8273,13 @@ Rinchi::Outlook::Recipients - Module for representing Recipients objects.
 #===============================================================================
 # Rinchi::Outlook::Recipient::recipient
 
-=item $arrayref = $Object->recipient();
+=head2 $arrayref = $Object->recipient();
 
 Returns a reference to an array of the contained Recipient objects.
 Get values of the recipient property.
 
   
-Type: 
+ Type: 
 
 =cut
 
@@ -9085,12 +8291,12 @@ sub recipient() {
 #===============================================================================
 # Rinchi::Outlook::Recipient::recipient
 
-=item $value = $Object->push_recipient([$new_value]);
+=head2 $value = $Object->push_recipient([$new_value]);
 
 Set or get value of the recipient attribute.
 
   
-Type: 
+ Type: 
 
 =cut
 
@@ -9117,13 +8323,11 @@ our @ISA = qw(Rinchi::Outlook::Element Rinchi::Outlook::OutlookCollection);
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of Reminders class
 
-Rinchi::Outlook::Reminders - Module for representing Reminders objects.
+Rinchi::Outlook::Reminders is used for representing Reminders objects.
 
-=head1 DESCRIPTION of Reminders
-
-  
+=head1 METHODS for Reminders objects
 
 =cut
 
@@ -9137,13 +8341,13 @@ Rinchi::Outlook::Reminders - Module for representing Reminders objects.
 #===============================================================================
 # Rinchi::Outlook::Reminder::reminder
 
-=item $arrayref = $Object->reminder();
+=head2 $arrayref = $Object->reminder();
 
 Returns a reference to an array of the contained Reminder objects.
 Get values of the reminder property.
 
   
-Type: 
+ Type: 
 
 =cut
 
@@ -9155,12 +8359,12 @@ sub reminder() {
 #===============================================================================
 # Rinchi::Outlook::Reminder::reminder
 
-=item $value = $Object->push_reminder([$new_value]);
+=head2 $value = $Object->push_reminder([$new_value]);
 
 Set or get value of the reminder attribute.
 
   
-Type: 
+ Type: 
 
 =cut
 
@@ -9187,13 +8391,11 @@ our @ISA = qw(Rinchi::Outlook::Element Rinchi::Outlook::OutlookCollection);
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of Results class
 
-Rinchi::Outlook::Results - Module for representing Results objects.
+Rinchi::Outlook::Results is used for representing Results objects.
 
-=head1 DESCRIPTION of Results
-
-  
+=head1 METHODS for Results objects
 
 =cut
 
@@ -9207,14 +8409,14 @@ Rinchi::Outlook::Results - Module for representing Results objects.
 #===============================================================================
 # Rinchi::Outlook::Results::DefaultItemType
 
-=item $value = $Object->DefaultItemType([$new_value]);
+=head2 $value = $Object->DefaultItemType([$new_value]);
 
 Set or get value of the DefaultItemType attribute.
 
   
-Type: OlItemType
-Lower: 0
-Upper: 1
+ Type: OlItemType
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -9237,14 +8439,14 @@ sub DefaultItemType() {
 #===============================================================================
 # Rinchi::Outlook::Results::RawTable
 
-=item $value = $Object->RawTable([$new_value]);
+=head2 $value = $Object->RawTable([$new_value]);
 
 Set or get value of the RawTable attribute.
 
   
-Type: Unknown
-Lower: 0
-Upper: 1
+ Type: Unknown
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -9275,13 +8477,11 @@ our @ISA = qw(Rinchi::Outlook::Element Rinchi::Outlook::OutlookCollection);
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of SyncObjects class
 
-Rinchi::Outlook::SyncObjects - Module for representing SyncObjects objects.
+Rinchi::Outlook::SyncObjects is used for representing SyncObjects objects.
 
-=head1 DESCRIPTION of SyncObjects
-
-  
+=head1 METHODS for SyncObjects objects
 
 =cut
 
@@ -9295,14 +8495,14 @@ Rinchi::Outlook::SyncObjects - Module for representing SyncObjects objects.
 #===============================================================================
 # Rinchi::Outlook::SyncObjects::AppFolders
 
-=item $value = $Object->AppFolders([$new_value]);
+=head2 $value = $Object->AppFolders([$new_value]);
 
 Set or get value of the AppFolders attribute.
 
   
-Type: SyncObject
-Lower: 0
-Upper: 1
+ Type: SyncObject
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -9322,13 +8522,13 @@ sub AppFolders() {
 #===============================================================================
 # Rinchi::Outlook::SyncObject::syncObject
 
-=item $arrayref = $Object->syncObject();
+=head2 $arrayref = $Object->syncObject();
 
 Returns a reference to an array of the contained SyncObject objects.
 Get values of the syncObject property.
 
   
-Type: 
+ Type: 
 
 =cut
 
@@ -9340,12 +8540,12 @@ sub syncObject() {
 #===============================================================================
 # Rinchi::Outlook::SyncObject::syncObject
 
-=item $value = $Object->push_syncObject([$new_value]);
+=head2 $value = $Object->push_syncObject([$new_value]);
 
 Set or get value of the syncObject attribute.
 
   
-Type: 
+ Type: 
 
 =cut
 
@@ -9372,13 +8572,11 @@ our @ISA = qw(Rinchi::Outlook::Element Rinchi::Outlook::OutlookCollection);
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of UserProperties class
 
-Rinchi::Outlook::UserProperties - Module for representing UserProperties objects.
+Rinchi::Outlook::UserProperties is used for representing UserProperties objects.
 
-=head1 DESCRIPTION of UserProperties
-
-  
+=head1 METHODS for UserProperties objects
 
 =cut
 
@@ -9392,13 +8590,13 @@ Rinchi::Outlook::UserProperties - Module for representing UserProperties objects
 #===============================================================================
 # Rinchi::Outlook::UserProperty::userProperty
 
-=item $arrayref = $Object->userProperty();
+=head2 $arrayref = $Object->userProperty();
 
 Returns a reference to an array of the contained UserProperty objects.
 Get values of the userProperty property.
 
   
-Type: 
+ Type: 
 
 =cut
 
@@ -9410,12 +8608,12 @@ sub userProperty() {
 #===============================================================================
 # Rinchi::Outlook::UserProperty::userProperty
 
-=item $value = $Object->push_userProperty([$new_value]);
+=head2 $value = $Object->push_userProperty([$new_value]);
 
 Set or get value of the userProperty attribute.
 
   
-Type: 
+ Type: 
 
 =cut
 
@@ -9442,13 +8640,11 @@ our @ISA = qw(Rinchi::Outlook::Element Rinchi::Outlook::OutlookCollection);
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
-
-Rinchi::Outlook::Views - Module for representing Views objects.
-
 =head1 DESCRIPTION of Views
 
-  
+Rinchi::Outlook::Views is used for representing Views objects.
+
+=head1 METHODS for Views objects
 
 =cut
 
@@ -9462,13 +8658,13 @@ Rinchi::Outlook::Views - Module for representing Views objects.
 #===============================================================================
 # Rinchi::Outlook::View::view
 
-=item $arrayref = $Object->view();
+=head2 $arrayref = $Object->view();
 
 Returns a reference to an array of the contained View objects.
 Get values of the view property.
 
   
-Type: 
+ Type: 
 
 =cut
 
@@ -9480,12 +8676,12 @@ sub view() {
 #===============================================================================
 # Rinchi::Outlook::View::view
 
-=item $value = $Object->push_view([$new_value]);
+=head2 $value = $Object->push_view([$new_value]);
 
 Set or get value of the view attribute.
 
   
-Type: 
+ Type: 
 
 =cut
 
@@ -9512,13 +8708,11 @@ our @ISA = qw(Rinchi::Outlook::Element Rinchi::Outlook::OutlookCollection);
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of Folders class
 
-Rinchi::Outlook::Folders - Module for representing Folders objects.
+Rinchi::Outlook::Folders is used for representing Folders objects.
 
-=head1 DESCRIPTION of Folders
-
-  
+=head1 METHODS for Folders objects
 
 =cut
 
@@ -9532,14 +8726,14 @@ Rinchi::Outlook::Folders - Module for representing Folders objects.
 #===============================================================================
 # Rinchi::Outlook::Folders::RawTable
 
-=item $value = $Object->RawTable([$new_value]);
+=head2 $value = $Object->RawTable([$new_value]);
 
 Set or get value of the RawTable attribute.
 
   
-Type: Unknown
-Lower: 0
-Upper: 1
+ Type: Unknown
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -9559,13 +8753,13 @@ sub RawTable() {
 #===============================================================================
 # Rinchi::Outlook::MAPIFolder::MAPIFolder
 
-=item $arrayref = $Object->MAPIFolder();
+=head2 $arrayref = $Object->MAPIFolder();
 
 Returns a reference to an array of the contained MAPIFolder objects.
 Get values of the MAPIFolder property.
 
   
-Type: 
+ Type: 
 
 =cut
 
@@ -9577,12 +8771,12 @@ sub MAPIFolder() {
 #===============================================================================
 # Rinchi::Outlook::MAPIFolder::MAPIFolder
 
-=item $value = $Object->push_MAPIFolder([$new_value]);
+=head2 $value = $Object->push_MAPIFolder([$new_value]);
 
 Set or get value of the MAPIFolder attribute.
 
   
-Type: 
+ Type: 
 
 =cut
 
@@ -9609,37 +8803,14 @@ our @ISA = qw(Rinchi::Outlook::Element Rinchi::Outlook::OutlookItemObject);
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of AppointmentItem class
 
-Rinchi::Outlook::AppointmentItem - Module for representing AppointmentItem objects.
+Rinchi::Outlook::AppointmentItem is used for representing AppointmentItem 
+objects. An AppointmentItem object represents an appointment in the Calendar 
+folder. An AppointmentItem object can represent a meeting, a one-time 
+appointment, or a recurring appointment or meeting.
 
-=head1 DESCRIPTION of AppointmentItem
-
-  Represents an appointment in the Calendar folder. An AppointmentItem object can represent a meeting, a one-time appointment, or a recurring appointment or meeting.
-Using the AppointmentItem Object
-
-Use the CreateItem method to create an AppointmentItem object that represents a new appointment.
-
-The following Visual Basic for Applications (VBA) example returns a new appointment.
-
-Set myOlApp = CreateObject("Outlook.Application")
-Set myItem = myOlApp.CreateItem(olAppointmentItem)
-		
-
-Use Items (index), where index is the index number of an appointment or a value used to match the default property of an appointment, to return a single AppointmentItem object from a Calendar folder.
-
-You can also return an AppointmentItem object from a MeetingItem object by using the GetAssociatedAppointment method.
-Remarks
-
-If a program tries to reference any type of recipient information by using the Outlook object model, a dialog box is displayed that asks you to confirm access to this information. You can allow access to the Address Book or recipient information for up to ten minutes after you receive the dialog box. This allows features, such as mobile device synchronization, to be completed.
-
-You receive the confirmation dialog box when a solution tries to programmatically access the following properties of the AppointmentItem object:
-
-    * Organizer
-    * RequiredAttendees
-    * OptionalAttendees
-    * Resources
-    * NetMeetingOrganizerAlias
+=head1 METHODS for AppointmentItem objects
 
 =cut
 
@@ -9653,14 +8824,14 @@ You receive the confirmation dialog box when a solution tries to programmaticall
 #===============================================================================
 # Rinchi::Outlook::AppointmentItem::AllDayEvent
 
-=item $value = $Object->AllDayEvent([$new_value]);
+=head2 $value = $Object->AllDayEvent([$new_value]);
 
 Set or get value of the AllDayEvent attribute.
 
   
-Type: Boolean
-Lower: 0
-Upper: 1
+ Type: Boolean
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -9679,14 +8850,14 @@ sub AllDayEvent() {
 #===============================================================================
 # Rinchi::Outlook::AppointmentItem::BusyStatus
 
-=item $value = $Object->BusyStatus([$new_value]);
+=head2 $value = $Object->BusyStatus([$new_value]);
 
 Set or get value of the BusyStatus attribute.
 
   
-Type: OlBusyStatus
-Lower: 0
-Upper: 1
+ Type: OlBusyStatus
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -9709,14 +8880,14 @@ sub BusyStatus() {
 #===============================================================================
 # Rinchi::Outlook::AppointmentItem::ConferenceServerAllowExternal
 
-=item $value = $Object->ConferenceServerAllowExternal([$new_value]);
+=head2 $value = $Object->ConferenceServerAllowExternal([$new_value]);
 
 Set or get value of the ConferenceServerAllowExternal attribute.
 
   
-Type: Boolean
-Lower: 0
-Upper: 1
+ Type: Boolean
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -9735,14 +8906,14 @@ sub ConferenceServerAllowExternal() {
 #===============================================================================
 # Rinchi::Outlook::AppointmentItem::ConferenceServerPassword
 
-=item $value = $Object->ConferenceServerPassword([$new_value]);
+=head2 $value = $Object->ConferenceServerPassword([$new_value]);
 
 Set or get value of the ConferenceServerPassword attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -9757,14 +8928,14 @@ sub ConferenceServerPassword() {
 #===============================================================================
 # Rinchi::Outlook::AppointmentItem::Duration
 
-=item $value = $Object->Duration([$new_value]);
+=head2 $value = $Object->Duration([$new_value]);
 
 Set or get value of the Duration attribute.
 
   
-Type: Long
-Lower: 0
-Upper: 1
+ Type: Long
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -9783,14 +8954,14 @@ sub Duration() {
 #===============================================================================
 # Rinchi::Outlook::AppointmentItem::End
 
-=item $value = $Object->End([$new_value]);
+=head2 $value = $Object->End([$new_value]);
 
 Set or get value of the End attribute.
 
   
-Type: VT_DATE
-Lower: 0
-Upper: 1
+ Type: VT_DATE
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -9805,14 +8976,14 @@ sub End() {
 #===============================================================================
 # Rinchi::Outlook::AppointmentItem::InternetCodepage
 
-=item $value = $Object->InternetCodepage([$new_value]);
+=head2 $value = $Object->InternetCodepage([$new_value]);
 
 Set or get value of the InternetCodepage attribute.
 
   
-Type: Long
-Lower: 0
-Upper: 1
+ Type: Long
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -9831,14 +9002,14 @@ sub InternetCodepage() {
 #===============================================================================
 # Rinchi::Outlook::AppointmentItem::IsOnlineMeeting
 
-=item $value = $Object->IsOnlineMeeting([$new_value]);
+=head2 $value = $Object->IsOnlineMeeting([$new_value]);
 
 Set or get value of the IsOnlineMeeting attribute.
 
   
-Type: Boolean
-Lower: 0
-Upper: 1
+ Type: Boolean
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -9857,14 +9028,14 @@ sub IsOnlineMeeting() {
 #===============================================================================
 # Rinchi::Outlook::AppointmentItem::IsRecurring
 
-=item $value = $Object->IsRecurring([$new_value]);
+=head2 $value = $Object->IsRecurring([$new_value]);
 
 Set or get value of the IsRecurring attribute.
 
   
-Type: Boolean
-Lower: 0
-Upper: 1
+ Type: Boolean
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -9883,14 +9054,14 @@ sub IsRecurring() {
 #===============================================================================
 # Rinchi::Outlook::AppointmentItem::Location
 
-=item $value = $Object->Location([$new_value]);
+=head2 $value = $Object->Location([$new_value]);
 
 Set or get value of the Location attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -9905,14 +9076,14 @@ sub Location() {
 #===============================================================================
 # Rinchi::Outlook::AppointmentItem::MeetingStatus
 
-=item $value = $Object->MeetingStatus([$new_value]);
+=head2 $value = $Object->MeetingStatus([$new_value]);
 
 Set or get value of the MeetingStatus attribute.
 
   
-Type: OlMeetingStatus
-Lower: 0
-Upper: 1
+ Type: OlMeetingStatus
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -9935,14 +9106,14 @@ sub MeetingStatus() {
 #===============================================================================
 # Rinchi::Outlook::AppointmentItem::MeetingWorkspaceURL
 
-=item $value = $Object->MeetingWorkspaceURL([$new_value]);
+=head2 $value = $Object->MeetingWorkspaceURL([$new_value]);
 
 Set or get value of the MeetingWorkspaceURL attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -9957,14 +9128,14 @@ sub MeetingWorkspaceURL() {
 #===============================================================================
 # Rinchi::Outlook::AppointmentItem::NetMeetingAutoStart
 
-=item $value = $Object->NetMeetingAutoStart([$new_value]);
+=head2 $value = $Object->NetMeetingAutoStart([$new_value]);
 
 Set or get value of the NetMeetingAutoStart attribute.
 
   
-Type: Boolean
-Lower: 0
-Upper: 1
+ Type: Boolean
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -9983,14 +9154,14 @@ sub NetMeetingAutoStart() {
 #===============================================================================
 # Rinchi::Outlook::AppointmentItem::NetMeetingDocPathName
 
-=item $value = $Object->NetMeetingDocPathName([$new_value]);
+=head2 $value = $Object->NetMeetingDocPathName([$new_value]);
 
 Set or get value of the NetMeetingDocPathName attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -10005,14 +9176,14 @@ sub NetMeetingDocPathName() {
 #===============================================================================
 # Rinchi::Outlook::AppointmentItem::NetMeetingOrganizerAlias
 
-=item $value = $Object->NetMeetingOrganizerAlias([$new_value]);
+=head2 $value = $Object->NetMeetingOrganizerAlias([$new_value]);
 
 Set or get value of the NetMeetingOrganizerAlias attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -10027,14 +9198,14 @@ sub NetMeetingOrganizerAlias() {
 #===============================================================================
 # Rinchi::Outlook::AppointmentItem::NetMeetingServer
 
-=item $value = $Object->NetMeetingServer([$new_value]);
+=head2 $value = $Object->NetMeetingServer([$new_value]);
 
 Set or get value of the NetMeetingServer attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -10049,14 +9220,14 @@ sub NetMeetingServer() {
 #===============================================================================
 # Rinchi::Outlook::AppointmentItem::NetMeetingType
 
-=item $value = $Object->NetMeetingType([$new_value]);
+=head2 $value = $Object->NetMeetingType([$new_value]);
 
 Set or get value of the NetMeetingType attribute.
 
   
-Type: OlNetMeetingType
-Lower: 0
-Upper: 1
+ Type: OlNetMeetingType
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -10079,14 +9250,14 @@ sub NetMeetingType() {
 #===============================================================================
 # Rinchi::Outlook::AppointmentItem::NetShowURL
 
-=item $value = $Object->NetShowURL([$new_value]);
+=head2 $value = $Object->NetShowURL([$new_value]);
 
 Set or get value of the NetShowURL attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -10101,14 +9272,14 @@ sub NetShowURL() {
 #===============================================================================
 # Rinchi::Outlook::AppointmentItem::OptionalAttendees
 
-=item $value = $Object->OptionalAttendees([$new_value]);
+=head2 $value = $Object->OptionalAttendees([$new_value]);
 
 Set or get value of the OptionalAttendees attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -10123,14 +9294,14 @@ sub OptionalAttendees() {
 #===============================================================================
 # Rinchi::Outlook::AppointmentItem::Organizer
 
-=item $value = $Object->Organizer([$new_value]);
+=head2 $value = $Object->Organizer([$new_value]);
 
 Set or get value of the Organizer attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -10145,14 +9316,14 @@ sub Organizer() {
 #===============================================================================
 # Rinchi::Outlook::AppointmentItem::Recipients
 
-=item $Element = $Object->Recipients();
+=head2 $Element = $Object->Recipients();
 
 Set or get value of the Recipients attribute.
 
   
-Type: Recipients
-Lower: 0
-Upper: 1
+ Type: Recipients
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -10164,14 +9335,14 @@ sub Recipients() {
 #===============================================================================
 # Rinchi::Outlook::AppointmentItem::RecurrenceState
 
-=item $value = $Object->RecurrenceState([$new_value]);
+=head2 $value = $Object->RecurrenceState([$new_value]);
 
 Set or get value of the RecurrenceState attribute.
 
   
-Type: OlRecurrenceState
-Lower: 0
-Upper: 1
+ Type: OlRecurrenceState
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -10194,14 +9365,14 @@ sub RecurrenceState() {
 #===============================================================================
 # Rinchi::Outlook::AppointmentItem::ReminderMinutesBeforeStart
 
-=item $value = $Object->ReminderMinutesBeforeStart([$new_value]);
+=head2 $value = $Object->ReminderMinutesBeforeStart([$new_value]);
 
 Set or get value of the ReminderMinutesBeforeStart attribute.
 
   
-Type: Long
-Lower: 0
-Upper: 1
+ Type: Long
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -10220,14 +9391,14 @@ sub ReminderMinutesBeforeStart() {
 #===============================================================================
 # Rinchi::Outlook::AppointmentItem::ReminderOverrideDefault
 
-=item $value = $Object->ReminderOverrideDefault([$new_value]);
+=head2 $value = $Object->ReminderOverrideDefault([$new_value]);
 
 Set or get value of the ReminderOverrideDefault attribute.
 
   
-Type: Boolean
-Lower: 0
-Upper: 1
+ Type: Boolean
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -10246,14 +9417,14 @@ sub ReminderOverrideDefault() {
 #===============================================================================
 # Rinchi::Outlook::AppointmentItem::ReminderPlaySound
 
-=item $value = $Object->ReminderPlaySound([$new_value]);
+=head2 $value = $Object->ReminderPlaySound([$new_value]);
 
 Set or get value of the ReminderPlaySound attribute.
 
   
-Type: Boolean
-Lower: 0
-Upper: 1
+ Type: Boolean
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -10272,14 +9443,14 @@ sub ReminderPlaySound() {
 #===============================================================================
 # Rinchi::Outlook::AppointmentItem::ReminderSet
 
-=item $value = $Object->ReminderSet([$new_value]);
+=head2 $value = $Object->ReminderSet([$new_value]);
 
 Set or get value of the ReminderSet attribute.
 
   
-Type: Boolean
-Lower: 0
-Upper: 1
+ Type: Boolean
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -10298,14 +9469,14 @@ sub ReminderSet() {
 #===============================================================================
 # Rinchi::Outlook::AppointmentItem::ReminderSoundFile
 
-=item $value = $Object->ReminderSoundFile([$new_value]);
+=head2 $value = $Object->ReminderSoundFile([$new_value]);
 
 Set or get value of the ReminderSoundFile attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -10320,14 +9491,14 @@ sub ReminderSoundFile() {
 #===============================================================================
 # Rinchi::Outlook::AppointmentItem::ReplyTime
 
-=item $value = $Object->ReplyTime([$new_value]);
+=head2 $value = $Object->ReplyTime([$new_value]);
 
 Set or get value of the ReplyTime attribute.
 
   
-Type: VT_DATE
-Lower: 0
-Upper: 1
+ Type: VT_DATE
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -10342,14 +9513,14 @@ sub ReplyTime() {
 #===============================================================================
 # Rinchi::Outlook::AppointmentItem::RequiredAttendees
 
-=item $value = $Object->RequiredAttendees([$new_value]);
+=head2 $value = $Object->RequiredAttendees([$new_value]);
 
 Set or get value of the RequiredAttendees attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -10364,14 +9535,14 @@ sub RequiredAttendees() {
 #===============================================================================
 # Rinchi::Outlook::AppointmentItem::Resources
 
-=item $value = $Object->Resources([$new_value]);
+=head2 $value = $Object->Resources([$new_value]);
 
 Set or get value of the Resources attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -10386,14 +9557,14 @@ sub Resources() {
 #===============================================================================
 # Rinchi::Outlook::AppointmentItem::ResponseRequested
 
-=item $value = $Object->ResponseRequested([$new_value]);
+=head2 $value = $Object->ResponseRequested([$new_value]);
 
 Set or get value of the ResponseRequested attribute.
 
   
-Type: Boolean
-Lower: 0
-Upper: 1
+ Type: Boolean
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -10412,14 +9583,14 @@ sub ResponseRequested() {
 #===============================================================================
 # Rinchi::Outlook::AppointmentItem::ResponseStatus
 
-=item $value = $Object->ResponseStatus([$new_value]);
+=head2 $value = $Object->ResponseStatus([$new_value]);
 
 Set or get value of the ResponseStatus attribute.
 
   
-Type: OlResponseStatus
-Lower: 0
-Upper: 1
+ Type: OlResponseStatus
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -10442,14 +9613,14 @@ sub ResponseStatus() {
 #===============================================================================
 # Rinchi::Outlook::AppointmentItem::Start
 
-=item $value = $Object->Start([$new_value]);
+=head2 $value = $Object->Start([$new_value]);
 
 Set or get value of the Start attribute.
 
   
-Type: VT_DATE
-Lower: 0
-Upper: 1
+ Type: VT_DATE
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -10475,51 +9646,13 @@ our @ISA = qw(Rinchi::Outlook::Element Rinchi::Outlook::OutlookItemObject);
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of ContactItem class
 
-Rinchi::Outlook::ContactItem - Module for representing ContactItem objects.
+Rinchi::Outlook::ContactItem is used for representing ContactItem objects. A 
+ContactItem object represents a contact in a contacts folder. A contact can 
+represent any person with whom you have any personal or professional contact.
 
-=head1 DESCRIPTION of ContactItem
-
-  Represents a contact in a contacts folder. A contact can represent any person with whom you have any personal or professional contact.
-Using the ContactItem Object
-
-Use the CreateItem method to create a ContactItem object that represents a new contact.
-
-The following Visual Basic for Applications (VBA) example returns a new contact.
-
-Set myOlApp = CreateObject("Outlook.Application")
-Set myItem = myOlApp.CreateItem(olContactItem)
-
-		
-
-The following Microsoft Visual Basic Scripting Edition (VBScript) example returns a new contact.
-
-Set myItem = Application.CreateItem(olContactItem)
-
-		
-
-Use Items (index), where index is the index number of a contact or a value used to match the default property of a contact, to return a single ContactItem object from a Contacts folder.
-Remarks
-
-If a program tries to reference any type of recipient information by using the Outlook object model, a dialog box is displayed that asks you to confirm access to this information. You can allow access to the Address Book or recipient information for up to ten minutes after you receive the dialog box. This allows features, such as mobile device synchronization, to be completed.
-
-You receive the confirmation dialog box when a solution tries to programmatically access the following properties of the ContactItem object:
-
-    * Email1Address
-    * Email1AddressType
-    * Email1DisplayName
-    * Email1EntryID
-    * Email2Address
-    * Email2AddressType
-    * Email2DisplayName
-    * Email2EntryID
-    * Email3Address
-    * Email3AddressType
-    * Email3DisplayName
-    * Email3EntryID
-    * NetMeetingAlias
-    * ReferredBy
+=head1 METHODS for ContactItem objects
 
 =cut
 
@@ -10533,14 +9666,14 @@ You receive the confirmation dialog box when a solution tries to programmaticall
 #===============================================================================
 # Rinchi::Outlook::ContactItem::Account
 
-=item $value = $Object->Account([$new_value]);
+=head2 $value = $Object->Account([$new_value]);
 
 Set or get value of the Account attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -10555,14 +9688,14 @@ sub Account() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::Anniversary
 
-=item $value = $Object->Anniversary([$new_value]);
+=head2 $value = $Object->Anniversary([$new_value]);
 
 Set or get value of the Anniversary attribute.
 
   
-Type: VT_DATE
-Lower: 0
-Upper: 1
+ Type: VT_DATE
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -10577,14 +9710,14 @@ sub Anniversary() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::AssistantName
 
-=item $value = $Object->AssistantName([$new_value]);
+=head2 $value = $Object->AssistantName([$new_value]);
 
 Set or get value of the AssistantName attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -10599,14 +9732,14 @@ sub AssistantName() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::AssistantTelephoneNumber
 
-=item $value = $Object->AssistantTelephoneNumber([$new_value]);
+=head2 $value = $Object->AssistantTelephoneNumber([$new_value]);
 
 Set or get value of the AssistantTelephoneNumber attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -10621,14 +9754,14 @@ sub AssistantTelephoneNumber() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::Birthday
 
-=item $value = $Object->Birthday([$new_value]);
+=head2 $value = $Object->Birthday([$new_value]);
 
 Set or get value of the Birthday attribute.
 
   
-Type: VT_DATE
-Lower: 0
-Upper: 1
+ Type: VT_DATE
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -10643,14 +9776,14 @@ sub Birthday() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::Business2TelephoneNumber
 
-=item $value = $Object->Business2TelephoneNumber([$new_value]);
+=head2 $value = $Object->Business2TelephoneNumber([$new_value]);
 
 Set or get value of the Business2TelephoneNumber attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -10665,14 +9798,14 @@ sub Business2TelephoneNumber() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::BusinessAddress
 
-=item $value = $Object->BusinessAddress([$new_value]);
+=head2 $value = $Object->BusinessAddress([$new_value]);
 
 Set or get value of the BusinessAddress attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -10687,14 +9820,14 @@ sub BusinessAddress() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::BusinessAddressCity
 
-=item $value = $Object->BusinessAddressCity([$new_value]);
+=head2 $value = $Object->BusinessAddressCity([$new_value]);
 
 Set or get value of the BusinessAddressCity attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -10709,14 +9842,14 @@ sub BusinessAddressCity() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::BusinessAddressCountry
 
-=item $value = $Object->BusinessAddressCountry([$new_value]);
+=head2 $value = $Object->BusinessAddressCountry([$new_value]);
 
 Set or get value of the BusinessAddressCountry attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -10731,14 +9864,14 @@ sub BusinessAddressCountry() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::BusinessAddressPostOfficeBox
 
-=item $value = $Object->BusinessAddressPostOfficeBox([$new_value]);
+=head2 $value = $Object->BusinessAddressPostOfficeBox([$new_value]);
 
 Set or get value of the BusinessAddressPostOfficeBox attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -10753,14 +9886,14 @@ sub BusinessAddressPostOfficeBox() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::BusinessAddressPostalCode
 
-=item $value = $Object->BusinessAddressPostalCode([$new_value]);
+=head2 $value = $Object->BusinessAddressPostalCode([$new_value]);
 
 Set or get value of the BusinessAddressPostalCode attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -10775,14 +9908,14 @@ sub BusinessAddressPostalCode() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::BusinessAddressState
 
-=item $value = $Object->BusinessAddressState([$new_value]);
+=head2 $value = $Object->BusinessAddressState([$new_value]);
 
 Set or get value of the BusinessAddressState attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -10797,14 +9930,14 @@ sub BusinessAddressState() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::BusinessAddressStreet
 
-=item $value = $Object->BusinessAddressStreet([$new_value]);
+=head2 $value = $Object->BusinessAddressStreet([$new_value]);
 
 Set or get value of the BusinessAddressStreet attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -10819,14 +9952,14 @@ sub BusinessAddressStreet() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::BusinessFaxNumber
 
-=item $value = $Object->BusinessFaxNumber([$new_value]);
+=head2 $value = $Object->BusinessFaxNumber([$new_value]);
 
 Set or get value of the BusinessFaxNumber attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -10841,14 +9974,14 @@ sub BusinessFaxNumber() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::BusinessHomePage
 
-=item $value = $Object->BusinessHomePage([$new_value]);
+=head2 $value = $Object->BusinessHomePage([$new_value]);
 
 Set or get value of the BusinessHomePage attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -10863,14 +9996,14 @@ sub BusinessHomePage() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::BusinessTelephoneNumber
 
-=item $value = $Object->BusinessTelephoneNumber([$new_value]);
+=head2 $value = $Object->BusinessTelephoneNumber([$new_value]);
 
 Set or get value of the BusinessTelephoneNumber attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -10885,14 +10018,14 @@ sub BusinessTelephoneNumber() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::CallbackTelephoneNumber
 
-=item $value = $Object->CallbackTelephoneNumber([$new_value]);
+=head2 $value = $Object->CallbackTelephoneNumber([$new_value]);
 
 Set or get value of the CallbackTelephoneNumber attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -10907,14 +10040,14 @@ sub CallbackTelephoneNumber() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::CarTelephoneNumber
 
-=item $value = $Object->CarTelephoneNumber([$new_value]);
+=head2 $value = $Object->CarTelephoneNumber([$new_value]);
 
 Set or get value of the CarTelephoneNumber attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -10929,14 +10062,14 @@ sub CarTelephoneNumber() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::Children
 
-=item $value = $Object->Children([$new_value]);
+=head2 $value = $Object->Children([$new_value]);
 
 Set or get value of the Children attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -10951,14 +10084,14 @@ sub Children() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::CompanyAndFullName
 
-=item $value = $Object->CompanyAndFullName([$new_value]);
+=head2 $value = $Object->CompanyAndFullName([$new_value]);
 
 Set or get value of the CompanyAndFullName attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -10973,14 +10106,14 @@ sub CompanyAndFullName() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::CompanyLastFirstNoSpace
 
-=item $value = $Object->CompanyLastFirstNoSpace([$new_value]);
+=head2 $value = $Object->CompanyLastFirstNoSpace([$new_value]);
 
 Set or get value of the CompanyLastFirstNoSpace attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -10995,14 +10128,14 @@ sub CompanyLastFirstNoSpace() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::CompanyLastFirstSpaceOnly
 
-=item $value = $Object->CompanyLastFirstSpaceOnly([$new_value]);
+=head2 $value = $Object->CompanyLastFirstSpaceOnly([$new_value]);
 
 Set or get value of the CompanyLastFirstSpaceOnly attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -11017,14 +10150,14 @@ sub CompanyLastFirstSpaceOnly() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::CompanyMainTelephoneNumber
 
-=item $value = $Object->CompanyMainTelephoneNumber([$new_value]);
+=head2 $value = $Object->CompanyMainTelephoneNumber([$new_value]);
 
 Set or get value of the CompanyMainTelephoneNumber attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -11039,14 +10172,14 @@ sub CompanyMainTelephoneNumber() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::CompanyName
 
-=item $value = $Object->CompanyName([$new_value]);
+=head2 $value = $Object->CompanyName([$new_value]);
 
 Set or get value of the CompanyName attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -11061,14 +10194,14 @@ sub CompanyName() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::ComputerNetworkName
 
-=item $value = $Object->ComputerNetworkName([$new_value]);
+=head2 $value = $Object->ComputerNetworkName([$new_value]);
 
 Set or get value of the ComputerNetworkName attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -11083,14 +10216,14 @@ sub ComputerNetworkName() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::CustomerID
 
-=item $value = $Object->CustomerID([$new_value]);
+=head2 $value = $Object->CustomerID([$new_value]);
 
 Set or get value of the CustomerID attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -11105,14 +10238,14 @@ sub CustomerID() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::Department
 
-=item $value = $Object->Department([$new_value]);
+=head2 $value = $Object->Department([$new_value]);
 
 Set or get value of the Department attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -11127,14 +10260,14 @@ sub Department() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::Email1Address
 
-=item $value = $Object->Email1Address([$new_value]);
+=head2 $value = $Object->Email1Address([$new_value]);
 
 Set or get value of the Email1Address attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -11149,14 +10282,14 @@ sub Email1Address() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::Email1AddressType
 
-=item $value = $Object->Email1AddressType([$new_value]);
+=head2 $value = $Object->Email1AddressType([$new_value]);
 
 Set or get value of the Email1AddressType attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -11171,14 +10304,14 @@ sub Email1AddressType() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::Email1DisplayName
 
-=item $value = $Object->Email1DisplayName([$new_value]);
+=head2 $value = $Object->Email1DisplayName([$new_value]);
 
 Set or get value of the Email1DisplayName attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -11193,14 +10326,14 @@ sub Email1DisplayName() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::Email1EntryID
 
-=item $value = $Object->Email1EntryID([$new_value]);
+=head2 $value = $Object->Email1EntryID([$new_value]);
 
 Set or get value of the Email1EntryID attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -11215,14 +10348,14 @@ sub Email1EntryID() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::Email2Address
 
-=item $value = $Object->Email2Address([$new_value]);
+=head2 $value = $Object->Email2Address([$new_value]);
 
 Set or get value of the Email2Address attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -11237,14 +10370,14 @@ sub Email2Address() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::Email2AddressType
 
-=item $value = $Object->Email2AddressType([$new_value]);
+=head2 $value = $Object->Email2AddressType([$new_value]);
 
 Set or get value of the Email2AddressType attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -11259,14 +10392,14 @@ sub Email2AddressType() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::Email2DisplayName
 
-=item $value = $Object->Email2DisplayName([$new_value]);
+=head2 $value = $Object->Email2DisplayName([$new_value]);
 
 Set or get value of the Email2DisplayName attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -11281,14 +10414,14 @@ sub Email2DisplayName() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::Email2EntryID
 
-=item $value = $Object->Email2EntryID([$new_value]);
+=head2 $value = $Object->Email2EntryID([$new_value]);
 
 Set or get value of the Email2EntryID attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -11303,14 +10436,14 @@ sub Email2EntryID() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::Email3Address
 
-=item $value = $Object->Email3Address([$new_value]);
+=head2 $value = $Object->Email3Address([$new_value]);
 
 Set or get value of the Email3Address attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -11325,14 +10458,14 @@ sub Email3Address() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::Email3AddressType
 
-=item $value = $Object->Email3AddressType([$new_value]);
+=head2 $value = $Object->Email3AddressType([$new_value]);
 
 Set or get value of the Email3AddressType attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -11347,14 +10480,14 @@ sub Email3AddressType() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::Email3DisplayName
 
-=item $value = $Object->Email3DisplayName([$new_value]);
+=head2 $value = $Object->Email3DisplayName([$new_value]);
 
 Set or get value of the Email3DisplayName attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -11369,14 +10502,14 @@ sub Email3DisplayName() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::Email3EntryID
 
-=item $value = $Object->Email3EntryID([$new_value]);
+=head2 $value = $Object->Email3EntryID([$new_value]);
 
 Set or get value of the Email3EntryID attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -11391,14 +10524,14 @@ sub Email3EntryID() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::FTPSite
 
-=item $value = $Object->FTPSite([$new_value]);
+=head2 $value = $Object->FTPSite([$new_value]);
 
 Set or get value of the FTPSite attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -11413,14 +10546,14 @@ sub FTPSite() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::FileAs
 
-=item $value = $Object->FileAs([$new_value]);
+=head2 $value = $Object->FileAs([$new_value]);
 
 Set or get value of the FileAs attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -11435,14 +10568,14 @@ sub FileAs() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::FirstName
 
-=item $value = $Object->FirstName([$new_value]);
+=head2 $value = $Object->FirstName([$new_value]);
 
 Set or get value of the FirstName attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -11457,14 +10590,14 @@ sub FirstName() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::FullName
 
-=item $value = $Object->FullName([$new_value]);
+=head2 $value = $Object->FullName([$new_value]);
 
 Set or get value of the FullName attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -11479,14 +10612,14 @@ sub FullName() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::FullNameAndCompany
 
-=item $value = $Object->FullNameAndCompany([$new_value]);
+=head2 $value = $Object->FullNameAndCompany([$new_value]);
 
 Set or get value of the FullNameAndCompany attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -11501,14 +10634,14 @@ sub FullNameAndCompany() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::Gender
 
-=item $value = $Object->Gender([$new_value]);
+=head2 $value = $Object->Gender([$new_value]);
 
 Set or get value of the Gender attribute.
 
   
-Type: OlGender
-Lower: 0
-Upper: 1
+ Type: OlGender
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -11531,14 +10664,14 @@ sub Gender() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::GovernmentIDNumber
 
-=item $value = $Object->GovernmentIDNumber([$new_value]);
+=head2 $value = $Object->GovernmentIDNumber([$new_value]);
 
 Set or get value of the GovernmentIDNumber attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -11553,14 +10686,14 @@ sub GovernmentIDNumber() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::HasPicture
 
-=item $value = $Object->HasPicture([$new_value]);
+=head2 $value = $Object->HasPicture([$new_value]);
 
 Set or get value of the HasPicture attribute.
 
   
-Type: Boolean
-Lower: 0
-Upper: 1
+ Type: Boolean
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -11579,14 +10712,14 @@ sub HasPicture() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::Hobby
 
-=item $value = $Object->Hobby([$new_value]);
+=head2 $value = $Object->Hobby([$new_value]);
 
 Set or get value of the Hobby attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -11601,14 +10734,14 @@ sub Hobby() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::Home2TelephoneNumber
 
-=item $value = $Object->Home2TelephoneNumber([$new_value]);
+=head2 $value = $Object->Home2TelephoneNumber([$new_value]);
 
 Set or get value of the Home2TelephoneNumber attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -11623,14 +10756,14 @@ sub Home2TelephoneNumber() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::HomeAddress
 
-=item $value = $Object->HomeAddress([$new_value]);
+=head2 $value = $Object->HomeAddress([$new_value]);
 
 Set or get value of the HomeAddress attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -11645,14 +10778,14 @@ sub HomeAddress() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::HomeAddressCity
 
-=item $value = $Object->HomeAddressCity([$new_value]);
+=head2 $value = $Object->HomeAddressCity([$new_value]);
 
 Set or get value of the HomeAddressCity attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -11667,14 +10800,14 @@ sub HomeAddressCity() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::HomeAddressCountry
 
-=item $value = $Object->HomeAddressCountry([$new_value]);
+=head2 $value = $Object->HomeAddressCountry([$new_value]);
 
 Set or get value of the HomeAddressCountry attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -11689,14 +10822,14 @@ sub HomeAddressCountry() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::HomeAddressPostOfficeBox
 
-=item $value = $Object->HomeAddressPostOfficeBox([$new_value]);
+=head2 $value = $Object->HomeAddressPostOfficeBox([$new_value]);
 
 Set or get value of the HomeAddressPostOfficeBox attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -11711,14 +10844,14 @@ sub HomeAddressPostOfficeBox() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::HomeAddressPostalCode
 
-=item $value = $Object->HomeAddressPostalCode([$new_value]);
+=head2 $value = $Object->HomeAddressPostalCode([$new_value]);
 
 Set or get value of the HomeAddressPostalCode attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -11733,14 +10866,14 @@ sub HomeAddressPostalCode() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::HomeAddressState
 
-=item $value = $Object->HomeAddressState([$new_value]);
+=head2 $value = $Object->HomeAddressState([$new_value]);
 
 Set or get value of the HomeAddressState attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -11755,14 +10888,14 @@ sub HomeAddressState() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::HomeAddressStreet
 
-=item $value = $Object->HomeAddressStreet([$new_value]);
+=head2 $value = $Object->HomeAddressStreet([$new_value]);
 
 Set or get value of the HomeAddressStreet attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -11777,14 +10910,14 @@ sub HomeAddressStreet() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::HomeFaxNumber
 
-=item $value = $Object->HomeFaxNumber([$new_value]);
+=head2 $value = $Object->HomeFaxNumber([$new_value]);
 
 Set or get value of the HomeFaxNumber attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -11799,14 +10932,14 @@ sub HomeFaxNumber() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::HomeTelephoneNumber
 
-=item $value = $Object->HomeTelephoneNumber([$new_value]);
+=head2 $value = $Object->HomeTelephoneNumber([$new_value]);
 
 Set or get value of the HomeTelephoneNumber attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -11821,14 +10954,14 @@ sub HomeTelephoneNumber() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::IMAddress
 
-=item $value = $Object->IMAddress([$new_value]);
+=head2 $value = $Object->IMAddress([$new_value]);
 
 Set or get value of the IMAddress attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -11843,14 +10976,14 @@ sub IMAddress() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::ISDNNumber
 
-=item $value = $Object->ISDNNumber([$new_value]);
+=head2 $value = $Object->ISDNNumber([$new_value]);
 
 Set or get value of the ISDNNumber attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -11865,14 +10998,14 @@ sub ISDNNumber() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::Initials
 
-=item $value = $Object->Initials([$new_value]);
+=head2 $value = $Object->Initials([$new_value]);
 
 Set or get value of the Initials attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -11887,14 +11020,14 @@ sub Initials() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::InternetFreeBusyAddress
 
-=item $value = $Object->InternetFreeBusyAddress([$new_value]);
+=head2 $value = $Object->InternetFreeBusyAddress([$new_value]);
 
 Set or get value of the InternetFreeBusyAddress attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -11909,14 +11042,14 @@ sub InternetFreeBusyAddress() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::JobTitle
 
-=item $value = $Object->JobTitle([$new_value]);
+=head2 $value = $Object->JobTitle([$new_value]);
 
 Set or get value of the JobTitle attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -11931,14 +11064,14 @@ sub JobTitle() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::Journal
 
-=item $value = $Object->Journal([$new_value]);
+=head2 $value = $Object->Journal([$new_value]);
 
 Set or get value of the Journal attribute.
 
   
-Type: Boolean
-Lower: 0
-Upper: 1
+ Type: Boolean
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -11957,14 +11090,14 @@ sub Journal() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::Language
 
-=item $value = $Object->Language([$new_value]);
+=head2 $value = $Object->Language([$new_value]);
 
 Set or get value of the Language attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -11979,14 +11112,14 @@ sub Language() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::LastFirstAndSuffix
 
-=item $value = $Object->LastFirstAndSuffix([$new_value]);
+=head2 $value = $Object->LastFirstAndSuffix([$new_value]);
 
 Set or get value of the LastFirstAndSuffix attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -12001,14 +11134,14 @@ sub LastFirstAndSuffix() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::LastFirstNoSpace
 
-=item $value = $Object->LastFirstNoSpace([$new_value]);
+=head2 $value = $Object->LastFirstNoSpace([$new_value]);
 
 Set or get value of the LastFirstNoSpace attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -12023,14 +11156,14 @@ sub LastFirstNoSpace() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::LastFirstNoSpaceAndSuffix
 
-=item $value = $Object->LastFirstNoSpaceAndSuffix([$new_value]);
+=head2 $value = $Object->LastFirstNoSpaceAndSuffix([$new_value]);
 
 Set or get value of the LastFirstNoSpaceAndSuffix attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -12045,14 +11178,14 @@ sub LastFirstNoSpaceAndSuffix() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::LastFirstNoSpaceCompany
 
-=item $value = $Object->LastFirstNoSpaceCompany([$new_value]);
+=head2 $value = $Object->LastFirstNoSpaceCompany([$new_value]);
 
 Set or get value of the LastFirstNoSpaceCompany attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -12067,14 +11200,14 @@ sub LastFirstNoSpaceCompany() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::LastFirstSpaceOnly
 
-=item $value = $Object->LastFirstSpaceOnly([$new_value]);
+=head2 $value = $Object->LastFirstSpaceOnly([$new_value]);
 
 Set or get value of the LastFirstSpaceOnly attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -12089,14 +11222,14 @@ sub LastFirstSpaceOnly() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::LastFirstSpaceOnlyCompany
 
-=item $value = $Object->LastFirstSpaceOnlyCompany([$new_value]);
+=head2 $value = $Object->LastFirstSpaceOnlyCompany([$new_value]);
 
 Set or get value of the LastFirstSpaceOnlyCompany attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -12111,14 +11244,14 @@ sub LastFirstSpaceOnlyCompany() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::LastName
 
-=item $value = $Object->LastName([$new_value]);
+=head2 $value = $Object->LastName([$new_value]);
 
 Set or get value of the LastName attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -12133,14 +11266,14 @@ sub LastName() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::LastNameAndFirstName
 
-=item $value = $Object->LastNameAndFirstName([$new_value]);
+=head2 $value = $Object->LastNameAndFirstName([$new_value]);
 
 Set or get value of the LastNameAndFirstName attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -12155,14 +11288,14 @@ sub LastNameAndFirstName() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::MailingAddress
 
-=item $value = $Object->MailingAddress([$new_value]);
+=head2 $value = $Object->MailingAddress([$new_value]);
 
 Set or get value of the MailingAddress attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -12177,14 +11310,14 @@ sub MailingAddress() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::MailingAddressCity
 
-=item $value = $Object->MailingAddressCity([$new_value]);
+=head2 $value = $Object->MailingAddressCity([$new_value]);
 
 Set or get value of the MailingAddressCity attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -12199,14 +11332,14 @@ sub MailingAddressCity() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::MailingAddressCountry
 
-=item $value = $Object->MailingAddressCountry([$new_value]);
+=head2 $value = $Object->MailingAddressCountry([$new_value]);
 
 Set or get value of the MailingAddressCountry attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -12221,14 +11354,14 @@ sub MailingAddressCountry() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::MailingAddressPostOfficeBox
 
-=item $value = $Object->MailingAddressPostOfficeBox([$new_value]);
+=head2 $value = $Object->MailingAddressPostOfficeBox([$new_value]);
 
 Set or get value of the MailingAddressPostOfficeBox attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -12243,14 +11376,14 @@ sub MailingAddressPostOfficeBox() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::MailingAddressPostalCode
 
-=item $value = $Object->MailingAddressPostalCode([$new_value]);
+=head2 $value = $Object->MailingAddressPostalCode([$new_value]);
 
 Set or get value of the MailingAddressPostalCode attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -12265,14 +11398,14 @@ sub MailingAddressPostalCode() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::MailingAddressState
 
-=item $value = $Object->MailingAddressState([$new_value]);
+=head2 $value = $Object->MailingAddressState([$new_value]);
 
 Set or get value of the MailingAddressState attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -12287,14 +11420,14 @@ sub MailingAddressState() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::MailingAddressStreet
 
-=item $value = $Object->MailingAddressStreet([$new_value]);
+=head2 $value = $Object->MailingAddressStreet([$new_value]);
 
 Set or get value of the MailingAddressStreet attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -12309,14 +11442,14 @@ sub MailingAddressStreet() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::ManagerName
 
-=item $value = $Object->ManagerName([$new_value]);
+=head2 $value = $Object->ManagerName([$new_value]);
 
 Set or get value of the ManagerName attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -12331,14 +11464,14 @@ sub ManagerName() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::MiddleName
 
-=item $value = $Object->MiddleName([$new_value]);
+=head2 $value = $Object->MiddleName([$new_value]);
 
 Set or get value of the MiddleName attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -12353,14 +11486,14 @@ sub MiddleName() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::MobileTelephoneNumber
 
-=item $value = $Object->MobileTelephoneNumber([$new_value]);
+=head2 $value = $Object->MobileTelephoneNumber([$new_value]);
 
 Set or get value of the MobileTelephoneNumber attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -12375,14 +11508,14 @@ sub MobileTelephoneNumber() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::NetMeetingAlias
 
-=item $value = $Object->NetMeetingAlias([$new_value]);
+=head2 $value = $Object->NetMeetingAlias([$new_value]);
 
 Set or get value of the NetMeetingAlias attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -12397,14 +11530,14 @@ sub NetMeetingAlias() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::NetMeetingServer
 
-=item $value = $Object->NetMeetingServer([$new_value]);
+=head2 $value = $Object->NetMeetingServer([$new_value]);
 
 Set or get value of the NetMeetingServer attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -12419,14 +11552,14 @@ sub NetMeetingServer() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::NickName
 
-=item $value = $Object->NickName([$new_value]);
+=head2 $value = $Object->NickName([$new_value]);
 
 Set or get value of the NickName attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -12441,14 +11574,14 @@ sub NickName() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::OfficeLocation
 
-=item $value = $Object->OfficeLocation([$new_value]);
+=head2 $value = $Object->OfficeLocation([$new_value]);
 
 Set or get value of the OfficeLocation attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -12463,14 +11596,14 @@ sub OfficeLocation() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::OrganizationalIDNumber
 
-=item $value = $Object->OrganizationalIDNumber([$new_value]);
+=head2 $value = $Object->OrganizationalIDNumber([$new_value]);
 
 Set or get value of the OrganizationalIDNumber attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -12485,14 +11618,14 @@ sub OrganizationalIDNumber() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::OtherAddress
 
-=item $value = $Object->OtherAddress([$new_value]);
+=head2 $value = $Object->OtherAddress([$new_value]);
 
 Set or get value of the OtherAddress attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -12507,14 +11640,14 @@ sub OtherAddress() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::OtherAddressCity
 
-=item $value = $Object->OtherAddressCity([$new_value]);
+=head2 $value = $Object->OtherAddressCity([$new_value]);
 
 Set or get value of the OtherAddressCity attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -12529,14 +11662,14 @@ sub OtherAddressCity() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::OtherAddressCountry
 
-=item $value = $Object->OtherAddressCountry([$new_value]);
+=head2 $value = $Object->OtherAddressCountry([$new_value]);
 
 Set or get value of the OtherAddressCountry attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -12551,14 +11684,14 @@ sub OtherAddressCountry() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::OtherAddressPostOfficeBox
 
-=item $value = $Object->OtherAddressPostOfficeBox([$new_value]);
+=head2 $value = $Object->OtherAddressPostOfficeBox([$new_value]);
 
 Set or get value of the OtherAddressPostOfficeBox attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -12573,14 +11706,14 @@ sub OtherAddressPostOfficeBox() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::OtherAddressPostalCode
 
-=item $value = $Object->OtherAddressPostalCode([$new_value]);
+=head2 $value = $Object->OtherAddressPostalCode([$new_value]);
 
 Set or get value of the OtherAddressPostalCode attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -12595,14 +11728,14 @@ sub OtherAddressPostalCode() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::OtherAddressState
 
-=item $value = $Object->OtherAddressState([$new_value]);
+=head2 $value = $Object->OtherAddressState([$new_value]);
 
 Set or get value of the OtherAddressState attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -12617,14 +11750,14 @@ sub OtherAddressState() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::OtherAddressStreet
 
-=item $value = $Object->OtherAddressStreet([$new_value]);
+=head2 $value = $Object->OtherAddressStreet([$new_value]);
 
 Set or get value of the OtherAddressStreet attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -12639,14 +11772,14 @@ sub OtherAddressStreet() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::OtherFaxNumber
 
-=item $value = $Object->OtherFaxNumber([$new_value]);
+=head2 $value = $Object->OtherFaxNumber([$new_value]);
 
 Set or get value of the OtherFaxNumber attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -12661,14 +11794,14 @@ sub OtherFaxNumber() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::OtherTelephoneNumber
 
-=item $value = $Object->OtherTelephoneNumber([$new_value]);
+=head2 $value = $Object->OtherTelephoneNumber([$new_value]);
 
 Set or get value of the OtherTelephoneNumber attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -12683,14 +11816,14 @@ sub OtherTelephoneNumber() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::PagerNumber
 
-=item $value = $Object->PagerNumber([$new_value]);
+=head2 $value = $Object->PagerNumber([$new_value]);
 
 Set or get value of the PagerNumber attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -12705,14 +11838,14 @@ sub PagerNumber() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::PersonalHomePage
 
-=item $value = $Object->PersonalHomePage([$new_value]);
+=head2 $value = $Object->PersonalHomePage([$new_value]);
 
 Set or get value of the PersonalHomePage attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -12727,14 +11860,14 @@ sub PersonalHomePage() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::PrimaryTelephoneNumber
 
-=item $value = $Object->PrimaryTelephoneNumber([$new_value]);
+=head2 $value = $Object->PrimaryTelephoneNumber([$new_value]);
 
 Set or get value of the PrimaryTelephoneNumber attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -12749,14 +11882,14 @@ sub PrimaryTelephoneNumber() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::Profession
 
-=item $value = $Object->Profession([$new_value]);
+=head2 $value = $Object->Profession([$new_value]);
 
 Set or get value of the Profession attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -12771,14 +11904,14 @@ sub Profession() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::RadioTelephoneNumber
 
-=item $value = $Object->RadioTelephoneNumber([$new_value]);
+=head2 $value = $Object->RadioTelephoneNumber([$new_value]);
 
 Set or get value of the RadioTelephoneNumber attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -12793,14 +11926,14 @@ sub RadioTelephoneNumber() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::ReferredBy
 
-=item $value = $Object->ReferredBy([$new_value]);
+=head2 $value = $Object->ReferredBy([$new_value]);
 
 Set or get value of the ReferredBy attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -12815,14 +11948,14 @@ sub ReferredBy() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::SelectedMailingAddress
 
-=item $value = $Object->SelectedMailingAddress([$new_value]);
+=head2 $value = $Object->SelectedMailingAddress([$new_value]);
 
 Set or get value of the SelectedMailingAddress attribute.
 
   
-Type: OlMailingAddress
-Lower: 0
-Upper: 1
+ Type: OlMailingAddress
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -12845,14 +11978,14 @@ sub SelectedMailingAddress() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::Spouse
 
-=item $value = $Object->Spouse([$new_value]);
+=head2 $value = $Object->Spouse([$new_value]);
 
 Set or get value of the Spouse attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -12867,14 +12000,14 @@ sub Spouse() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::Suffix
 
-=item $value = $Object->Suffix([$new_value]);
+=head2 $value = $Object->Suffix([$new_value]);
 
 Set or get value of the Suffix attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -12889,14 +12022,14 @@ sub Suffix() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::TTYTDDTelephoneNumber
 
-=item $value = $Object->TTYTDDTelephoneNumber([$new_value]);
+=head2 $value = $Object->TTYTDDTelephoneNumber([$new_value]);
 
 Set or get value of the TTYTDDTelephoneNumber attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -12911,14 +12044,14 @@ sub TTYTDDTelephoneNumber() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::TelexNumber
 
-=item $value = $Object->TelexNumber([$new_value]);
+=head2 $value = $Object->TelexNumber([$new_value]);
 
 Set or get value of the TelexNumber attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -12933,14 +12066,14 @@ sub TelexNumber() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::Title
 
-=item $value = $Object->Title([$new_value]);
+=head2 $value = $Object->Title([$new_value]);
 
 Set or get value of the Title attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -12955,14 +12088,14 @@ sub Title() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::User1
 
-=item $value = $Object->User1([$new_value]);
+=head2 $value = $Object->User1([$new_value]);
 
 Set or get value of the User1 attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -12977,14 +12110,14 @@ sub User1() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::User2
 
-=item $value = $Object->User2([$new_value]);
+=head2 $value = $Object->User2([$new_value]);
 
 Set or get value of the User2 attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -12999,14 +12132,14 @@ sub User2() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::User3
 
-=item $value = $Object->User3([$new_value]);
+=head2 $value = $Object->User3([$new_value]);
 
 Set or get value of the User3 attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -13021,14 +12154,14 @@ sub User3() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::User4
 
-=item $value = $Object->User4([$new_value]);
+=head2 $value = $Object->User4([$new_value]);
 
 Set or get value of the User4 attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -13043,14 +12176,14 @@ sub User4() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::UserCertificate
 
-=item $value = $Object->UserCertificate([$new_value]);
+=head2 $value = $Object->UserCertificate([$new_value]);
 
 Set or get value of the UserCertificate attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -13065,14 +12198,14 @@ sub UserCertificate() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::WebPage
 
-=item $value = $Object->WebPage([$new_value]);
+=head2 $value = $Object->WebPage([$new_value]);
 
 Set or get value of the WebPage attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -13087,14 +12220,14 @@ sub WebPage() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::YomiCompanyName
 
-=item $value = $Object->YomiCompanyName([$new_value]);
+=head2 $value = $Object->YomiCompanyName([$new_value]);
 
 Set or get value of the YomiCompanyName attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -13109,14 +12242,14 @@ sub YomiCompanyName() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::YomiFirstName
 
-=item $value = $Object->YomiFirstName([$new_value]);
+=head2 $value = $Object->YomiFirstName([$new_value]);
 
 Set or get value of the YomiFirstName attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -13131,14 +12264,14 @@ sub YomiFirstName() {
 #===============================================================================
 # Rinchi::Outlook::ContactItem::YomiLastName
 
-=item $value = $Object->YomiLastName([$new_value]);
+=head2 $value = $Object->YomiLastName([$new_value]);
 
 Set or get value of the YomiLastName attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -13164,30 +12297,14 @@ our @ISA = qw(Rinchi::Outlook::Element Rinchi::Outlook::OutlookItemObject);
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
-
-Rinchi::Outlook::DistListItem - Module for representing DistListItem objects.
-
 =head1 DESCRIPTION of DistListItem
 
-  Represents a distribution list in a contacts folder. A distribution list can contain multiple recipients and is used to send messages to everyone in the list.
-Using the DistListItem Object
+Rinchi::Outlook::DistListItem is used for representing DistListItem objects. A 
+DistListItem object represents a distribution list in a contacts folder. A 
+distribution list can contain multiple recipients and is used to send messages 
+to everyone in the list.
 
-Use the CreateItem method to create a DistListItem object that represents a new distribution list. The following Microsoft Visual Basic for Applications (VBA) example creates and displays a new distribution list.
-
-Set myOlApp = CreateObject("Outlook.Application")
-Set myItem = myOlApp.CreateItem(olDistributionListItem)
-myItem.Display
-		
-
-Use Items (index), where index is the index number of an item in a contacts folder or a value used to match the default property of an item in the folder, to return a single DistListItem object from a contacts folder (that is, a folder whose default item type is olContactItem). The following Visual Basic for Applications example sets the current folder as the contacts folder and displays an existing distribution list named Project Team in the folder.
-
-Set myOlApp = CreateObject("Outlook.Application")
-Set myNamespace = myOlApp.GetNamespace("MAPI")
-Set myFolder = myNamespace.GetDefaultFolder(olFolderContacts)
-myFolder.Display
-Set myItem = myFolder.Items("Project Team")
-myItem.Display
+=head1 METHODS for DistListItem objects
 
 =cut
 
@@ -13201,14 +12318,14 @@ myItem.Display
 #===============================================================================
 # Rinchi::Outlook::DistListItem::CheckSum
 
-=item $value = $Object->CheckSum([$new_value]);
+=head2 $value = $Object->CheckSum([$new_value]);
 
 Set or get value of the CheckSum attribute.
 
   
-Type: Long
-Lower: 0
-Upper: 1
+ Type: Long
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -13227,14 +12344,14 @@ sub CheckSum() {
 #===============================================================================
 # Rinchi::Outlook::DistListItem::DLName
 
-=item $value = $Object->DLName([$new_value]);
+=head2 $value = $Object->DLName([$new_value]);
 
 Set or get value of the DLName attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -13249,14 +12366,14 @@ sub DLName() {
 #===============================================================================
 # Rinchi::Outlook::DistListItem::MemberCount
 
-=item $value = $Object->MemberCount([$new_value]);
+=head2 $value = $Object->MemberCount([$new_value]);
 
 Set or get value of the MemberCount attribute.
 
   
-Type: Long
-Lower: 0
-Upper: 1
+ Type: Long
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -13275,14 +12392,14 @@ sub MemberCount() {
 #===============================================================================
 # Rinchi::Outlook::DistListItem::Members
 
-=item $value = $Object->Members([$new_value]);
+=head2 $value = $Object->Members([$new_value]);
 
 Set or get value of the Members attribute.
 
   
-Type: Variant
-Lower: 0
-Upper: 1
+ Type: Variant
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -13302,14 +12419,14 @@ sub Members() {
 #===============================================================================
 # Rinchi::Outlook::DistListItem::OneOffMembers
 
-=item $value = $Object->OneOffMembers([$new_value]);
+=head2 $value = $Object->OneOffMembers([$new_value]);
 
 Set or get value of the OneOffMembers attribute.
 
   
-Type: Variant
-Lower: 0
-Upper: 1
+ Type: Variant
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -13340,13 +12457,9 @@ our @ISA = qw(Rinchi::Outlook::Element Rinchi::Outlook::OutlookItemObject);
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
-
-Rinchi::Outlook::DocumentItem - Module for representing DocumentItem objects.
-
 =head1 DESCRIPTION of DocumentItem
 
-  A DocumentItem object is any document other than a Microsoft Outlook item as an item in an Outlook folder. In common usage, this will be an Office document but may be any type of document or executable file.
+Rinchi::Outlook::DocumentItem is used for representing DocumentItem objects. A DocumentItem object is any document other than a Microsoft Outlook item as an item in an Outlook folder. In common usage, this will be an Office document but may be any type of document or executable file.
 
 Note  When you try to programmatically add a user-defined property to a DocumentItem object, you receive the following error message: "Property is read-only." This is because the Outlook object model does not support this functionality.
 Example
@@ -13390,22 +12503,13 @@ our @ISA = qw(Rinchi::Outlook::Element Rinchi::Outlook::OutlookItemObject);
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of JournalItem class
 
-Rinchi::Outlook::JournalItem - Module for representing JournalItem objects.
+Rinchi::Outlook::JournalItem is used for representing JournalItem objects. 
+Represents a journal entry in a Journal folder. A journal entry represents a 
+record of all Microsoft Outlook-moderated transactions for any given period.
 
-=head1 DESCRIPTION of JournalItem
-
-  Represents a journal entry in a Journal folder. A journal entry represents a record of all Microsoft Outlook-moderated transactions for any given period.
-Using the JournalItem Object
-
-Use the CreateItem method to create a JournalItem object that represents a new journal entry. The following example returns a new journal entry.
-
-Set myOlApp = CreateObject("Outlook.Application")
-Set myItem = myOlApp.CreateItem(olJournalItem)
-		
-
-Use Items (index), where index is the index number of a journal entry or a value used to match the default property of a journal entry, to return a single JournalItem object from a Journal folder.
+=head1 METHODS for JournalItem objects
 
 =cut
 
@@ -13419,14 +12523,14 @@ Use Items (index), where index is the index number of a journal entry or a value
 #===============================================================================
 # Rinchi::Outlook::JournalItem::ContactNames
 
-=item $value = $Object->ContactNames([$new_value]);
+=head2 $value = $Object->ContactNames([$new_value]);
 
 Set or get value of the ContactNames attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -13441,14 +12545,14 @@ sub ContactNames() {
 #===============================================================================
 # Rinchi::Outlook::JournalItem::DocPosted
 
-=item $value = $Object->DocPosted([$new_value]);
+=head2 $value = $Object->DocPosted([$new_value]);
 
 Set or get value of the DocPosted attribute.
 
   
-Type: Boolean
-Lower: 0
-Upper: 1
+ Type: Boolean
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -13467,14 +12571,14 @@ sub DocPosted() {
 #===============================================================================
 # Rinchi::Outlook::JournalItem::DocPrinted
 
-=item $value = $Object->DocPrinted([$new_value]);
+=head2 $value = $Object->DocPrinted([$new_value]);
 
 Set or get value of the DocPrinted attribute.
 
   
-Type: Boolean
-Lower: 0
-Upper: 1
+ Type: Boolean
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -13493,14 +12597,14 @@ sub DocPrinted() {
 #===============================================================================
 # Rinchi::Outlook::JournalItem::DocRouted
 
-=item $value = $Object->DocRouted([$new_value]);
+=head2 $value = $Object->DocRouted([$new_value]);
 
 Set or get value of the DocRouted attribute.
 
   
-Type: Boolean
-Lower: 0
-Upper: 1
+ Type: Boolean
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -13519,14 +12623,14 @@ sub DocRouted() {
 #===============================================================================
 # Rinchi::Outlook::JournalItem::DocSaved
 
-=item $value = $Object->DocSaved([$new_value]);
+=head2 $value = $Object->DocSaved([$new_value]);
 
 Set or get value of the DocSaved attribute.
 
   
-Type: Boolean
-Lower: 0
-Upper: 1
+ Type: Boolean
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -13545,14 +12649,14 @@ sub DocSaved() {
 #===============================================================================
 # Rinchi::Outlook::JournalItem::Duration
 
-=item $value = $Object->Duration([$new_value]);
+=head2 $value = $Object->Duration([$new_value]);
 
 Set or get value of the Duration attribute.
 
   
-Type: Long
-Lower: 0
-Upper: 1
+ Type: Long
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -13571,14 +12675,14 @@ sub Duration() {
 #===============================================================================
 # Rinchi::Outlook::JournalItem::End
 
-=item $value = $Object->End([$new_value]);
+=head2 $value = $Object->End([$new_value]);
 
 Set or get value of the End attribute.
 
   
-Type: VT_DATE
-Lower: 0
-Upper: 1
+ Type: VT_DATE
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -13593,14 +12697,14 @@ sub End() {
 #===============================================================================
 # Rinchi::Outlook::JournalItem::Recipients
 
-=item $Element = $Object->Recipients();
+=head2 $Element = $Object->Recipients();
 
 Set or get value of the Recipients attribute.
 
   
-Type: Recipients
-Lower: 0
-Upper: 1
+ Type: Recipients
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -13612,14 +12716,14 @@ sub Recipients() {
 #===============================================================================
 # Rinchi::Outlook::JournalItem::Start
 
-=item $value = $Object->Start([$new_value]);
+=head2 $value = $Object->Start([$new_value]);
 
 Set or get value of the Start attribute.
 
   
-Type: VT_DATE
-Lower: 0
-Upper: 1
+ Type: VT_DATE
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -13634,14 +12738,14 @@ sub Start() {
 #===============================================================================
 # Rinchi::Outlook::JournalItem::Type
 
-=item $value = $Object->Type([$new_value]);
+=head2 $value = $Object->Type([$new_value]);
 
 Set or get value of the Type attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -13667,50 +12771,12 @@ our @ISA = qw(Rinchi::Outlook::Element Rinchi::Outlook::OutlookItemObject);
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
-
-Rinchi::Outlook::MailItem - Module for representing MailItem objects.
-
 =head1 DESCRIPTION of MailItem
 
-  Represents a mail message in an Inbox (mail) folder.
-Using the MailItem Object
+Rinchi::Outlook::MailItem is used for representing MailItem objects. A MailItem 
+object Represents a mail message in an Inbox (mail) folder.
 
-Use the CreateItem method to create a MailItem object that represents a new mail message. The following example creates and displays a new mail message.
-
-Set myOlApp = CreateObject("Outlook.Application")
-Set myItem = myOlApp.CreateItem(olMailItem)
-myItem.Display
-		
-
-Use Items (index), where index is the index number of a mail message or a value used to match the default property of a message, to return a single MailItem object from an Inbox folder. The following example sets the current folder as the Inbox and displays the second mail message in the folder.
-
-Set myOlApp = CreateObject("Outlook.Application")
-Set myNamespace = myOlApp.GetNamespace("MAPI")
-Set myFolder = myNamespace.GetDefaultFolder(olFolderInbox)
-myFolder.Display
-Set myItem = myFolder.Items(2)
-myItem.Display
-		
-
-Remarks
-
-If a program tries to reference any type of recipient information by using the Outlook object model, a dialog box is displayed that asks you to confirm access to this information. You can allow access to the Address Book or recipient information for up to ten minutes after you receive the dialog box. This allows features, such as mobile device synchronization, to be completed.
-
-You receive the confirmation dialog box when a solution tries to programmatically access the following properties of the MaiItem object:
-
-    * SentOnBehalfOfName
-    * SenderName
-    * ReceivedByName
-    * ReceivedOnBehalfOfName
-    * ReplyRecipientNames
-    * To
-    * CC
-    * BCC
-    * Body
-    * HTMLBody
-    * Recipients
-    * SenderEmailAddress
+=head1 METHODS for MailItem objects
 
 =cut
 
@@ -13724,14 +12790,14 @@ You receive the confirmation dialog box when a solution tries to programmaticall
 #===============================================================================
 # Rinchi::Outlook::MailItem::AlternateRecipientAllowed
 
-=item $value = $Object->AlternateRecipientAllowed([$new_value]);
+=head2 $value = $Object->AlternateRecipientAllowed([$new_value]);
 
 Set or get value of the AlternateRecipientAllowed attribute.
 
   
-Type: Boolean
-Lower: 0
-Upper: 1
+ Type: Boolean
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -13750,14 +12816,14 @@ sub AlternateRecipientAllowed() {
 #===============================================================================
 # Rinchi::Outlook::MailItem::AutoForwarded
 
-=item $value = $Object->AutoForwarded([$new_value]);
+=head2 $value = $Object->AutoForwarded([$new_value]);
 
 Set or get value of the AutoForwarded attribute.
 
   
-Type: Boolean
-Lower: 0
-Upper: 1
+ Type: Boolean
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -13776,14 +12842,14 @@ sub AutoForwarded() {
 #===============================================================================
 # Rinchi::Outlook::MailItem::BCC
 
-=item $value = $Object->BCC([$new_value]);
+=head2 $value = $Object->BCC([$new_value]);
 
 Set or get value of the BCC attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -13798,14 +12864,14 @@ sub BCC() {
 #===============================================================================
 # Rinchi::Outlook::MailItem::BodyFormat
 
-=item $value = $Object->BodyFormat([$new_value]);
+=head2 $value = $Object->BodyFormat([$new_value]);
 
 Set or get value of the BodyFormat attribute.
 
   
-Type: OlBodyFormat
-Lower: 0
-Upper: 1
+ Type: OlBodyFormat
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -13828,14 +12894,14 @@ sub BodyFormat() {
 #===============================================================================
 # Rinchi::Outlook::MailItem::CC
 
-=item $value = $Object->CC([$new_value]);
+=head2 $value = $Object->CC([$new_value]);
 
 Set or get value of the CC attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -13850,14 +12916,14 @@ sub CC() {
 #===============================================================================
 # Rinchi::Outlook::MailItem::DeferredDeliveryTime
 
-=item $value = $Object->DeferredDeliveryTime([$new_value]);
+=head2 $value = $Object->DeferredDeliveryTime([$new_value]);
 
 Set or get value of the DeferredDeliveryTime attribute.
 
   
-Type: VT_DATE
-Lower: 0
-Upper: 1
+ Type: VT_DATE
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -13872,14 +12938,14 @@ sub DeferredDeliveryTime() {
 #===============================================================================
 # Rinchi::Outlook::MailItem::DeleteAfterSubmit
 
-=item $value = $Object->DeleteAfterSubmit([$new_value]);
+=head2 $value = $Object->DeleteAfterSubmit([$new_value]);
 
 Set or get value of the DeleteAfterSubmit attribute.
 
   
-Type: Boolean
-Lower: 0
-Upper: 1
+ Type: Boolean
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -13898,14 +12964,14 @@ sub DeleteAfterSubmit() {
 #===============================================================================
 # Rinchi::Outlook::MailItem::EnableSharedAttachments
 
-=item $value = $Object->EnableSharedAttachments([$new_value]);
+=head2 $value = $Object->EnableSharedAttachments([$new_value]);
 
 Set or get value of the EnableSharedAttachments attribute.
 
   
-Type: Boolean
-Lower: 0
-Upper: 1
+ Type: Boolean
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -13924,14 +12990,14 @@ sub EnableSharedAttachments() {
 #===============================================================================
 # Rinchi::Outlook::MailItem::ExpiryTime
 
-=item $value = $Object->ExpiryTime([$new_value]);
+=head2 $value = $Object->ExpiryTime([$new_value]);
 
 Set or get value of the ExpiryTime attribute.
 
   
-Type: VT_DATE
-Lower: 0
-Upper: 1
+ Type: VT_DATE
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -13946,14 +13012,14 @@ sub ExpiryTime() {
 #===============================================================================
 # Rinchi::Outlook::MailItem::FlagDueBy
 
-=item $value = $Object->FlagDueBy([$new_value]);
+=head2 $value = $Object->FlagDueBy([$new_value]);
 
 Set or get value of the FlagDueBy attribute.
 
   
-Type: VT_DATE
-Lower: 0
-Upper: 1
+ Type: VT_DATE
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -13968,14 +13034,14 @@ sub FlagDueBy() {
 #===============================================================================
 # Rinchi::Outlook::MailItem::FlagIcon
 
-=item $value = $Object->FlagIcon([$new_value]);
+=head2 $value = $Object->FlagIcon([$new_value]);
 
 Set or get value of the FlagIcon attribute.
 
   
-Type: OlFlagIcon
-Lower: 0
-Upper: 1
+ Type: OlFlagIcon
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -13998,14 +13064,14 @@ sub FlagIcon() {
 #===============================================================================
 # Rinchi::Outlook::MailItem::FlagRequest
 
-=item $value = $Object->FlagRequest([$new_value]);
+=head2 $value = $Object->FlagRequest([$new_value]);
 
 Set or get value of the FlagRequest attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -14020,14 +13086,14 @@ sub FlagRequest() {
 #===============================================================================
 # Rinchi::Outlook::MailItem::FlagStatus
 
-=item $value = $Object->FlagStatus([$new_value]);
+=head2 $value = $Object->FlagStatus([$new_value]);
 
 Set or get value of the FlagStatus attribute.
 
   
-Type: OlFlagStatus
-Lower: 0
-Upper: 1
+ Type: OlFlagStatus
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -14050,14 +13116,14 @@ sub FlagStatus() {
 #===============================================================================
 # Rinchi::Outlook::MailItem::HTMLBody
 
-=item $value = $Object->HTMLBody([$new_value]);
+=head2 $value = $Object->HTMLBody([$new_value]);
 
 Set or get value of the HTMLBody attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -14072,14 +13138,14 @@ sub HTMLBody() {
 #===============================================================================
 # Rinchi::Outlook::MailItem::HasCoverSheet
 
-=item $value = $Object->HasCoverSheet([$new_value]);
+=head2 $value = $Object->HasCoverSheet([$new_value]);
 
 Set or get value of the HasCoverSheet attribute.
 
   
-Type: Boolean
-Lower: 0
-Upper: 1
+ Type: Boolean
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -14098,14 +13164,14 @@ sub HasCoverSheet() {
 #===============================================================================
 # Rinchi::Outlook::MailItem::InternetCodepage
 
-=item $value = $Object->InternetCodepage([$new_value]);
+=head2 $value = $Object->InternetCodepage([$new_value]);
 
 Set or get value of the InternetCodepage attribute.
 
   
-Type: Long
-Lower: 0
-Upper: 1
+ Type: Long
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -14124,14 +13190,14 @@ sub InternetCodepage() {
 #===============================================================================
 # Rinchi::Outlook::MailItem::IsIPFax
 
-=item $value = $Object->IsIPFax([$new_value]);
+=head2 $value = $Object->IsIPFax([$new_value]);
 
 Set or get value of the IsIPFax attribute.
 
   
-Type: Boolean
-Lower: 0
-Upper: 1
+ Type: Boolean
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -14150,14 +13216,14 @@ sub IsIPFax() {
 #===============================================================================
 # Rinchi::Outlook::MailItem::OriginatorDeliveryReportRequested
 
-=item $value = $Object->OriginatorDeliveryReportRequested([$new_value]);
+=head2 $value = $Object->OriginatorDeliveryReportRequested([$new_value]);
 
 Set or get value of the OriginatorDeliveryReportRequested attribute.
 
   
-Type: Boolean
-Lower: 0
-Upper: 1
+ Type: Boolean
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -14176,14 +13242,14 @@ sub OriginatorDeliveryReportRequested() {
 #===============================================================================
 # Rinchi::Outlook::MailItem::Permission
 
-=item $value = $Object->Permission([$new_value]);
+=head2 $value = $Object->Permission([$new_value]);
 
 Set or get value of the Permission attribute.
 
   
-Type: OlPermission
-Lower: 0
-Upper: 1
+ Type: OlPermission
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -14206,14 +13272,14 @@ sub Permission() {
 #===============================================================================
 # Rinchi::Outlook::MailItem::PermissionService
 
-=item $value = $Object->PermissionService([$new_value]);
+=head2 $value = $Object->PermissionService([$new_value]);
 
 Set or get value of the PermissionService attribute.
 
   
-Type: OlPermissionService
-Lower: 0
-Upper: 1
+ Type: OlPermissionService
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -14236,14 +13302,14 @@ sub PermissionService() {
 #===============================================================================
 # Rinchi::Outlook::MailItem::ReadReceiptRequested
 
-=item $value = $Object->ReadReceiptRequested([$new_value]);
+=head2 $value = $Object->ReadReceiptRequested([$new_value]);
 
 Set or get value of the ReadReceiptRequested attribute.
 
   
-Type: Boolean
-Lower: 0
-Upper: 1
+ Type: Boolean
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -14262,14 +13328,14 @@ sub ReadReceiptRequested() {
 #===============================================================================
 # Rinchi::Outlook::MailItem::ReceivedByEntryID
 
-=item $value = $Object->ReceivedByEntryID([$new_value]);
+=head2 $value = $Object->ReceivedByEntryID([$new_value]);
 
 Set or get value of the ReceivedByEntryID attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -14284,14 +13350,14 @@ sub ReceivedByEntryID() {
 #===============================================================================
 # Rinchi::Outlook::MailItem::ReceivedByName
 
-=item $value = $Object->ReceivedByName([$new_value]);
+=head2 $value = $Object->ReceivedByName([$new_value]);
 
 Set or get value of the ReceivedByName attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -14306,14 +13372,14 @@ sub ReceivedByName() {
 #===============================================================================
 # Rinchi::Outlook::MailItem::ReceivedOnBehalfOfEntryID
 
-=item $value = $Object->ReceivedOnBehalfOfEntryID([$new_value]);
+=head2 $value = $Object->ReceivedOnBehalfOfEntryID([$new_value]);
 
 Set or get value of the ReceivedOnBehalfOfEntryID attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -14328,14 +13394,14 @@ sub ReceivedOnBehalfOfEntryID() {
 #===============================================================================
 # Rinchi::Outlook::MailItem::ReceivedOnBehalfOfName
 
-=item $value = $Object->ReceivedOnBehalfOfName([$new_value]);
+=head2 $value = $Object->ReceivedOnBehalfOfName([$new_value]);
 
 Set or get value of the ReceivedOnBehalfOfName attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -14350,14 +13416,14 @@ sub ReceivedOnBehalfOfName() {
 #===============================================================================
 # Rinchi::Outlook::MailItem::ReceivedTime
 
-=item $value = $Object->ReceivedTime([$new_value]);
+=head2 $value = $Object->ReceivedTime([$new_value]);
 
 Set or get value of the ReceivedTime attribute.
 
   
-Type: VT_DATE
-Lower: 0
-Upper: 1
+ Type: VT_DATE
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -14372,14 +13438,14 @@ sub ReceivedTime() {
 #===============================================================================
 # Rinchi::Outlook::MailItem::RecipientReassignmentProhibited
 
-=item $value = $Object->RecipientReassignmentProhibited([$new_value]);
+=head2 $value = $Object->RecipientReassignmentProhibited([$new_value]);
 
 Set or get value of the RecipientReassignmentProhibited attribute.
 
   
-Type: Boolean
-Lower: 0
-Upper: 1
+ Type: Boolean
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -14398,14 +13464,14 @@ sub RecipientReassignmentProhibited() {
 #===============================================================================
 # Rinchi::Outlook::MailItem::Recipients
 
-=item $Element = $Object->Recipients();
+=head2 $Element = $Object->Recipients();
 
 Set or get value of the Recipients attribute.
 
   
-Type: Recipients
-Lower: 0
-Upper: 1
+ Type: Recipients
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -14417,14 +13483,14 @@ sub Recipients() {
 #===============================================================================
 # Rinchi::Outlook::MailItem::ReminderOverrideDefault
 
-=item $value = $Object->ReminderOverrideDefault([$new_value]);
+=head2 $value = $Object->ReminderOverrideDefault([$new_value]);
 
 Set or get value of the ReminderOverrideDefault attribute.
 
   
-Type: Boolean
-Lower: 0
-Upper: 1
+ Type: Boolean
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -14443,14 +13509,14 @@ sub ReminderOverrideDefault() {
 #===============================================================================
 # Rinchi::Outlook::MailItem::ReminderPlaySound
 
-=item $value = $Object->ReminderPlaySound([$new_value]);
+=head2 $value = $Object->ReminderPlaySound([$new_value]);
 
 Set or get value of the ReminderPlaySound attribute.
 
   
-Type: Boolean
-Lower: 0
-Upper: 1
+ Type: Boolean
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -14469,14 +13535,14 @@ sub ReminderPlaySound() {
 #===============================================================================
 # Rinchi::Outlook::MailItem::ReminderSet
 
-=item $value = $Object->ReminderSet([$new_value]);
+=head2 $value = $Object->ReminderSet([$new_value]);
 
 Set or get value of the ReminderSet attribute.
 
   
-Type: Boolean
-Lower: 0
-Upper: 1
+ Type: Boolean
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -14495,14 +13561,14 @@ sub ReminderSet() {
 #===============================================================================
 # Rinchi::Outlook::MailItem::ReminderSoundFile
 
-=item $value = $Object->ReminderSoundFile([$new_value]);
+=head2 $value = $Object->ReminderSoundFile([$new_value]);
 
 Set or get value of the ReminderSoundFile attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -14517,14 +13583,14 @@ sub ReminderSoundFile() {
 #===============================================================================
 # Rinchi::Outlook::MailItem::ReminderTime
 
-=item $value = $Object->ReminderTime([$new_value]);
+=head2 $value = $Object->ReminderTime([$new_value]);
 
 Set or get value of the ReminderTime attribute.
 
   
-Type: VT_DATE
-Lower: 0
-Upper: 1
+ Type: VT_DATE
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -14539,14 +13605,14 @@ sub ReminderTime() {
 #===============================================================================
 # Rinchi::Outlook::MailItem::RemoteStatus
 
-=item $value = $Object->RemoteStatus([$new_value]);
+=head2 $value = $Object->RemoteStatus([$new_value]);
 
 Set or get value of the RemoteStatus attribute.
 
   
-Type: OlRemoteStatus
-Lower: 0
-Upper: 1
+ Type: OlRemoteStatus
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -14569,14 +13635,14 @@ sub RemoteStatus() {
 #===============================================================================
 # Rinchi::Outlook::MailItem::ReplyRecipientNames
 
-=item $value = $Object->ReplyRecipientNames([$new_value]);
+=head2 $value = $Object->ReplyRecipientNames([$new_value]);
 
 Set or get value of the ReplyRecipientNames attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -14591,14 +13657,14 @@ sub ReplyRecipientNames() {
 #===============================================================================
 # Rinchi::Outlook::MailItem::ReplyRecipients
 
-=item $Element = $Object->ReplyRecipients();
+=head2 $Element = $Object->ReplyRecipients();
 
 Set or get value of the ReplyRecipients attribute.
 
   
-Type: Recipients
-Lower: 0
-Upper: 1
+ Type: Recipients
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -14610,14 +13676,14 @@ sub ReplyRecipients() {
 #===============================================================================
 # Rinchi::Outlook::MailItem::SaveSentMessageFolder
 
-=item $value = $Object->SaveSentMessageFolder([$new_value]);
+=head2 $value = $Object->SaveSentMessageFolder([$new_value]);
 
 Set or get value of the SaveSentMessageFolder attribute.
 
   
-Type: MAPIFolder
-Lower: 0
-Upper: 1
+ Type: MAPIFolder
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -14637,14 +13703,14 @@ sub SaveSentMessageFolder() {
 #===============================================================================
 # Rinchi::Outlook::MailItem::SenderEmailAddress
 
-=item $value = $Object->SenderEmailAddress([$new_value]);
+=head2 $value = $Object->SenderEmailAddress([$new_value]);
 
 Set or get value of the SenderEmailAddress attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -14659,14 +13725,14 @@ sub SenderEmailAddress() {
 #===============================================================================
 # Rinchi::Outlook::MailItem::SenderEmailType
 
-=item $value = $Object->SenderEmailType([$new_value]);
+=head2 $value = $Object->SenderEmailType([$new_value]);
 
 Set or get value of the SenderEmailType attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -14681,14 +13747,14 @@ sub SenderEmailType() {
 #===============================================================================
 # Rinchi::Outlook::MailItem::SenderName
 
-=item $value = $Object->SenderName([$new_value]);
+=head2 $value = $Object->SenderName([$new_value]);
 
 Set or get value of the SenderName attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -14703,14 +13769,14 @@ sub SenderName() {
 #===============================================================================
 # Rinchi::Outlook::MailItem::Sent
 
-=item $value = $Object->Sent([$new_value]);
+=head2 $value = $Object->Sent([$new_value]);
 
 Set or get value of the Sent attribute.
 
   
-Type: Boolean
-Lower: 0
-Upper: 1
+ Type: Boolean
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -14729,14 +13795,14 @@ sub Sent() {
 #===============================================================================
 # Rinchi::Outlook::MailItem::SentOn
 
-=item $value = $Object->SentOn([$new_value]);
+=head2 $value = $Object->SentOn([$new_value]);
 
 Set or get value of the SentOn attribute.
 
   
-Type: VT_DATE
-Lower: 0
-Upper: 1
+ Type: VT_DATE
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -14751,14 +13817,14 @@ sub SentOn() {
 #===============================================================================
 # Rinchi::Outlook::MailItem::SentOnBehalfOfName
 
-=item $value = $Object->SentOnBehalfOfName([$new_value]);
+=head2 $value = $Object->SentOnBehalfOfName([$new_value]);
 
 Set or get value of the SentOnBehalfOfName attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -14773,14 +13839,14 @@ sub SentOnBehalfOfName() {
 #===============================================================================
 # Rinchi::Outlook::MailItem::Submitted
 
-=item $value = $Object->Submitted([$new_value]);
+=head2 $value = $Object->Submitted([$new_value]);
 
 Set or get value of the Submitted attribute.
 
   
-Type: Boolean
-Lower: 0
-Upper: 1
+ Type: Boolean
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -14799,14 +13865,14 @@ sub Submitted() {
 #===============================================================================
 # Rinchi::Outlook::MailItem::To
 
-=item $value = $Object->To([$new_value]);
+=head2 $value = $Object->To([$new_value]);
 
 Set or get value of the To attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -14821,14 +13887,14 @@ sub To() {
 #===============================================================================
 # Rinchi::Outlook::MailItem::VotingOptions
 
-=item $value = $Object->VotingOptions([$new_value]);
+=head2 $value = $Object->VotingOptions([$new_value]);
 
 Set or get value of the VotingOptions attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -14843,14 +13909,14 @@ sub VotingOptions() {
 #===============================================================================
 # Rinchi::Outlook::MailItem::VotingResponse
 
-=item $value = $Object->VotingResponse([$new_value]);
+=head2 $value = $Object->VotingResponse([$new_value]);
 
 Set or get value of the VotingResponse attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -14876,39 +13942,14 @@ our @ISA = qw(Rinchi::Outlook::Element Rinchi::Outlook::OutlookItemObject);
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of MeetingItem class
 
-Rinchi::Outlook::MeetingItem - Module for representing MeetingItem objects.
+Rinchi::Outlook::MeetingItem is used for representing MeetingItem objects. A 
+MeetingItem object Represents an item in an Inbox (mail) folder. A MeetingItem 
+object represents a change to the recipient's Calendar folder initiated by 
+another party or as a result of a group action.
 
-=head1 DESCRIPTION of MeetingItem
-
-  Represents an item in an Inbox (mail) folder. A MeetingItem object represents a change to the recipient's Calendar folder initiated by another party or as a result of a group action.
-
-Using the MeetingItem Object
-
-Unlike other Microsoft Outlook objects, you cannot create this object. It is created automatically when you set the MeetingStatus property of an AppointmentItem object to olMeeting and send it to one or more users. They receive it in their inboxes as a MeetingItem.
-
-The following example uses the CreateItem method to create an appointment. It becomes a MeetingItem with both a required and an optional attendee when it is received in the inbox of each of the recipients.
-
-Set myItem = myOlApp.CreateItem(olAppointmentItem)
-myItem.MeetingStatus = olMeeting
-myItem.Subject = "Strategy Meeting"
-myItem.Location = "Conference Room B"
-myItem.Start = #9/24/97 1:30:00 PM#
-myItem.Duration = 90
-Set myRequiredAttendee = myItem.Recipients.Add("Nate _
-    Sun")
-myRequiredAttendee.Type = olRequired
-Set myOptionalAttendee = myItem.Recipients.Add("Kevin _
-    Kennedy")
-myOptionalAttendee.Type = olOptional
-Set myResourceAttendee = _
-    myItem.Recipients.Add("Conference Room B")
-myResourceAttendee.Type = olResource
-myItem.Send
-		
-
-Use the GetAssociatedAppointment method to return the AppointmentItem object associated with a MeetingItem object, and work directly with the AppointmentItem object to respond to the request.
+=head1 METHODS for MeetingItem objects
 
 =cut
 
@@ -14922,14 +13963,14 @@ Use the GetAssociatedAppointment method to return the AppointmentItem object ass
 #===============================================================================
 # Rinchi::Outlook::MeetingItem::AutoForwarded
 
-=item $value = $Object->AutoForwarded([$new_value]);
+=head2 $value = $Object->AutoForwarded([$new_value]);
 
 Set or get value of the AutoForwarded attribute.
 
   
-Type: Boolean
-Lower: 0
-Upper: 1
+ Type: Boolean
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -14948,14 +13989,14 @@ sub AutoForwarded() {
 #===============================================================================
 # Rinchi::Outlook::MeetingItem::DeferredDeliveryTime
 
-=item $value = $Object->DeferredDeliveryTime([$new_value]);
+=head2 $value = $Object->DeferredDeliveryTime([$new_value]);
 
 Set or get value of the DeferredDeliveryTime attribute.
 
   
-Type: VT_DATE
-Lower: 0
-Upper: 1
+ Type: VT_DATE
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -14970,14 +14011,14 @@ sub DeferredDeliveryTime() {
 #===============================================================================
 # Rinchi::Outlook::MeetingItem::DeleteAfterSubmit
 
-=item $value = $Object->DeleteAfterSubmit([$new_value]);
+=head2 $value = $Object->DeleteAfterSubmit([$new_value]);
 
 Set or get value of the DeleteAfterSubmit attribute.
 
   
-Type: Boolean
-Lower: 0
-Upper: 1
+ Type: Boolean
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -14996,14 +14037,14 @@ sub DeleteAfterSubmit() {
 #===============================================================================
 # Rinchi::Outlook::MeetingItem::ExpiryTime
 
-=item $value = $Object->ExpiryTime([$new_value]);
+=head2 $value = $Object->ExpiryTime([$new_value]);
 
 Set or get value of the ExpiryTime attribute.
 
   
-Type: VT_DATE
-Lower: 0
-Upper: 1
+ Type: VT_DATE
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -15018,14 +14059,14 @@ sub ExpiryTime() {
 #===============================================================================
 # Rinchi::Outlook::MeetingItem::FlagDueBy
 
-=item $value = $Object->FlagDueBy([$new_value]);
+=head2 $value = $Object->FlagDueBy([$new_value]);
 
 Set or get value of the FlagDueBy attribute.
 
   
-Type: VT_DATE
-Lower: 0
-Upper: 1
+ Type: VT_DATE
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -15040,14 +14081,14 @@ sub FlagDueBy() {
 #===============================================================================
 # Rinchi::Outlook::MeetingItem::FlagIcon
 
-=item $value = $Object->FlagIcon([$new_value]);
+=head2 $value = $Object->FlagIcon([$new_value]);
 
 Set or get value of the FlagIcon attribute.
 
   
-Type: OlFlagIcon
-Lower: 0
-Upper: 1
+ Type: OlFlagIcon
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -15070,14 +14111,14 @@ sub FlagIcon() {
 #===============================================================================
 # Rinchi::Outlook::MeetingItem::FlagRequest
 
-=item $value = $Object->FlagRequest([$new_value]);
+=head2 $value = $Object->FlagRequest([$new_value]);
 
 Set or get value of the FlagRequest attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -15092,14 +14133,14 @@ sub FlagRequest() {
 #===============================================================================
 # Rinchi::Outlook::MeetingItem::FlagStatus
 
-=item $value = $Object->FlagStatus([$new_value]);
+=head2 $value = $Object->FlagStatus([$new_value]);
 
 Set or get value of the FlagStatus attribute.
 
   
-Type: OlFlagStatus
-Lower: 0
-Upper: 1
+ Type: OlFlagStatus
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -15122,14 +14163,14 @@ sub FlagStatus() {
 #===============================================================================
 # Rinchi::Outlook::MeetingItem::MeetingWorkspaceURL
 
-=item $value = $Object->MeetingWorkspaceURL([$new_value]);
+=head2 $value = $Object->MeetingWorkspaceURL([$new_value]);
 
 Set or get value of the MeetingWorkspaceURL attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -15144,14 +14185,14 @@ sub MeetingWorkspaceURL() {
 #===============================================================================
 # Rinchi::Outlook::MeetingItem::OriginatorDeliveryReportRequested
 
-=item $value = $Object->OriginatorDeliveryReportRequested([$new_value]);
+=head2 $value = $Object->OriginatorDeliveryReportRequested([$new_value]);
 
 Set or get value of the OriginatorDeliveryReportRequested attribute.
 
   
-Type: Boolean
-Lower: 0
-Upper: 1
+ Type: Boolean
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -15170,14 +14211,14 @@ sub OriginatorDeliveryReportRequested() {
 #===============================================================================
 # Rinchi::Outlook::MeetingItem::ReceivedTime
 
-=item $value = $Object->ReceivedTime([$new_value]);
+=head2 $value = $Object->ReceivedTime([$new_value]);
 
 Set or get value of the ReceivedTime attribute.
 
   
-Type: VT_DATE
-Lower: 0
-Upper: 1
+ Type: VT_DATE
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -15192,14 +14233,14 @@ sub ReceivedTime() {
 #===============================================================================
 # Rinchi::Outlook::MeetingItem::Recipients
 
-=item $Element = $Object->Recipients();
+=head2 $Element = $Object->Recipients();
 
 Set or get value of the Recipients attribute.
 
   
-Type: Recipients
-Lower: 0
-Upper: 1
+ Type: Recipients
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -15211,14 +14252,14 @@ sub Recipients() {
 #===============================================================================
 # Rinchi::Outlook::MeetingItem::ReminderSet
 
-=item $value = $Object->ReminderSet([$new_value]);
+=head2 $value = $Object->ReminderSet([$new_value]);
 
 Set or get value of the ReminderSet attribute.
 
   
-Type: Boolean
-Lower: 0
-Upper: 1
+ Type: Boolean
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -15237,14 +14278,14 @@ sub ReminderSet() {
 #===============================================================================
 # Rinchi::Outlook::MeetingItem::ReminderTime
 
-=item $value = $Object->ReminderTime([$new_value]);
+=head2 $value = $Object->ReminderTime([$new_value]);
 
 Set or get value of the ReminderTime attribute.
 
   
-Type: VT_DATE
-Lower: 0
-Upper: 1
+ Type: VT_DATE
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -15259,14 +14300,14 @@ sub ReminderTime() {
 #===============================================================================
 # Rinchi::Outlook::MeetingItem::ReplyRecipients
 
-=item $Element = $Object->ReplyRecipients();
+=head2 $Element = $Object->ReplyRecipients();
 
 Set or get value of the ReplyRecipients attribute.
 
   
-Type: Recipients
-Lower: 0
-Upper: 1
+ Type: Recipients
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -15278,14 +14319,14 @@ sub ReplyRecipients() {
 #===============================================================================
 # Rinchi::Outlook::MeetingItem::SaveSentMessageFolder
 
-=item $value = $Object->SaveSentMessageFolder([$new_value]);
+=head2 $value = $Object->SaveSentMessageFolder([$new_value]);
 
 Set or get value of the SaveSentMessageFolder attribute.
 
   
-Type: MAPIFolder
-Lower: 0
-Upper: 1
+ Type: MAPIFolder
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -15305,14 +14346,14 @@ sub SaveSentMessageFolder() {
 #===============================================================================
 # Rinchi::Outlook::MeetingItem::SenderEmailAddress
 
-=item $value = $Object->SenderEmailAddress([$new_value]);
+=head2 $value = $Object->SenderEmailAddress([$new_value]);
 
 Set or get value of the SenderEmailAddress attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -15327,14 +14368,14 @@ sub SenderEmailAddress() {
 #===============================================================================
 # Rinchi::Outlook::MeetingItem::SenderEmailType
 
-=item $value = $Object->SenderEmailType([$new_value]);
+=head2 $value = $Object->SenderEmailType([$new_value]);
 
 Set or get value of the SenderEmailType attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -15349,14 +14390,14 @@ sub SenderEmailType() {
 #===============================================================================
 # Rinchi::Outlook::MeetingItem::SenderName
 
-=item $value = $Object->SenderName([$new_value]);
+=head2 $value = $Object->SenderName([$new_value]);
 
 Set or get value of the SenderName attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -15371,14 +14412,14 @@ sub SenderName() {
 #===============================================================================
 # Rinchi::Outlook::MeetingItem::Sent
 
-=item $value = $Object->Sent([$new_value]);
+=head2 $value = $Object->Sent([$new_value]);
 
 Set or get value of the Sent attribute.
 
   
-Type: Boolean
-Lower: 0
-Upper: 1
+ Type: Boolean
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -15397,14 +14438,14 @@ sub Sent() {
 #===============================================================================
 # Rinchi::Outlook::MeetingItem::SentOn
 
-=item $value = $Object->SentOn([$new_value]);
+=head2 $value = $Object->SentOn([$new_value]);
 
 Set or get value of the SentOn attribute.
 
   
-Type: VT_DATE
-Lower: 0
-Upper: 1
+ Type: VT_DATE
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -15419,14 +14460,14 @@ sub SentOn() {
 #===============================================================================
 # Rinchi::Outlook::MeetingItem::Submitted
 
-=item $value = $Object->Submitted([$new_value]);
+=head2 $value = $Object->Submitted([$new_value]);
 
 Set or get value of the Submitted attribute.
 
   
-Type: Boolean
-Lower: 0
-Upper: 1
+ Type: Boolean
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -15456,31 +14497,12 @@ our @ISA = qw(Rinchi::Outlook::Element Rinchi::Outlook::OutlookBaseItemObject);
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
-
-Rinchi::Outlook::NoteItem - Module for representing NoteItem objects.
-
 =head1 DESCRIPTION of NoteItem
 
-  Represents a note in a Notes folder.
+Rinchi::Outlook::NoteItem is used for representing NoteItem objects. A NoteItem 
+object represents a note in a Notes folder.
 
-A NoteItem    is not customizable. If you open a new note, you will notice that it is not possible to place it in design time.
-
-The Subject property of a NoteItem    object is read-only because it is calculated from the body text of the note. Also, the NoteItem    Body can only be rich text, so the properties that correspond to HTML and Microsoft Word content do not apply. Although the GetInspector property will work on notes, because notes can't be customized, some of the Inspector properties and methods will not apply to a NoteItem   .
-Using the NoteItem Object
-
-Use the CreateItem method to create a NoteItem    object that represents a new note. The following Microsoft Visual Basic example returns a new note.
-
-Set myOlApp = CreateObject("Outlook.Application")
-Set myItem = myOlApp.CreateItem(olNoteItem)
-		
-
-The following example shows how to create a NoteItem    object using Microsoft Visual Basic Scripting Edition (VBScript).
-
-Set myItem = Application.CreateItem(5)
-		
-
-Use Items (index), where index is the index number of a note or a value used to match the default property of a note, to return a single NoteItem    object from a Notes folder.
+=head1 METHODS for NoteItem objects
 
 =cut
 
@@ -15494,14 +14516,14 @@ Use Items (index), where index is the index number of a note or a value used to 
 #===============================================================================
 # Rinchi::Outlook::NoteItem::Color
 
-=item $value = $Object->Color([$new_value]);
+=head2 $value = $Object->Color([$new_value]);
 
 Set or get value of the Color attribute.
 
   
-Type: OlNoteColor
-Lower: 0
-Upper: 1
+ Type: OlNoteColor
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -15524,14 +14546,14 @@ sub Color() {
 #===============================================================================
 # Rinchi::Outlook::NoteItem::Height
 
-=item $value = $Object->Height([$new_value]);
+=head2 $value = $Object->Height([$new_value]);
 
 Set or get value of the Height attribute.
 
   
-Type: Long
-Lower: 0
-Upper: 1
+ Type: Long
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -15550,14 +14572,14 @@ sub Height() {
 #===============================================================================
 # Rinchi::Outlook::NoteItem::Left
 
-=item $value = $Object->Left([$new_value]);
+=head2 $value = $Object->Left([$new_value]);
 
 Set or get value of the Left attribute.
 
   
-Type: Long
-Lower: 0
-Upper: 1
+ Type: Long
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -15576,14 +14598,14 @@ sub Left() {
 #===============================================================================
 # Rinchi::Outlook::NoteItem::Top
 
-=item $value = $Object->Top([$new_value]);
+=head2 $value = $Object->Top([$new_value]);
 
 Set or get value of the Top attribute.
 
   
-Type: Long
-Lower: 0
-Upper: 1
+ Type: Long
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -15602,14 +14624,14 @@ sub Top() {
 #===============================================================================
 # Rinchi::Outlook::NoteItem::Width
 
-=item $value = $Object->Width([$new_value]);
+=head2 $value = $Object->Width([$new_value]);
 
 Set or get value of the Width attribute.
 
   
-Type: Long
-Lower: 0
-Upper: 1
+ Type: Long
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -15639,21 +14661,12 @@ our @ISA = qw(Rinchi::Outlook::Element Rinchi::Outlook::OutlookItemObject);
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of PostItem class
 
-Rinchi::Outlook::PostItem - Module for representing PostItem objects.
+Rinchi::Outlook::PostItem is used for representing PostItem objects. A PostItem 
+object represents a post in a public folder that others may browse.
 
-=head1 DESCRIPTION of PostItem
-
-  Represents a post in a public folder that others may browse. Unlike a MailItem  object, a PostItem object is not sent to a recipient. You use the Post  method, which is analogous to the Send  method for the MailItem object, to save the PostItem to the target public folder instead of mailing it.
-Using the PostItem Object
-
-Use the CreateItem or CreateItemFromTemplate method to create a PostItem object that represents a new post. The following example returns a new post.
-
-Set myItem = myOlApp.CreateItem(olPostItem)
-		
-
-Use Items (index), where index is the index number of a post or a value used to match the default property of a post, to return a single PostItem object from a public folder.
+=head1 METHODS for PostItem objects
 
 =cut
 
@@ -15667,14 +14680,14 @@ Use Items (index), where index is the index number of a post or a value used to 
 #===============================================================================
 # Rinchi::Outlook::PostItem::BodyFormat
 
-=item $value = $Object->BodyFormat([$new_value]);
+=head2 $value = $Object->BodyFormat([$new_value]);
 
 Set or get value of the BodyFormat attribute.
 
   
-Type: OlBodyFormat
-Lower: 0
-Upper: 1
+ Type: OlBodyFormat
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -15697,14 +14710,14 @@ sub BodyFormat() {
 #===============================================================================
 # Rinchi::Outlook::PostItem::ExpiryTime
 
-=item $value = $Object->ExpiryTime([$new_value]);
+=head2 $value = $Object->ExpiryTime([$new_value]);
 
 Set or get value of the ExpiryTime attribute.
 
   
-Type: VT_DATE
-Lower: 0
-Upper: 1
+ Type: VT_DATE
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -15719,14 +14732,14 @@ sub ExpiryTime() {
 #===============================================================================
 # Rinchi::Outlook::PostItem::HTMLBody
 
-=item $value = $Object->HTMLBody([$new_value]);
+=head2 $value = $Object->HTMLBody([$new_value]);
 
 Set or get value of the HTMLBody attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -15741,14 +14754,14 @@ sub HTMLBody() {
 #===============================================================================
 # Rinchi::Outlook::PostItem::InternetCodepage
 
-=item $value = $Object->InternetCodepage([$new_value]);
+=head2 $value = $Object->InternetCodepage([$new_value]);
 
 Set or get value of the InternetCodepage attribute.
 
   
-Type: Long
-Lower: 0
-Upper: 1
+ Type: Long
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -15767,14 +14780,14 @@ sub InternetCodepage() {
 #===============================================================================
 # Rinchi::Outlook::PostItem::ReceivedTime
 
-=item $value = $Object->ReceivedTime([$new_value]);
+=head2 $value = $Object->ReceivedTime([$new_value]);
 
 Set or get value of the ReceivedTime attribute.
 
   
-Type: VT_DATE
-Lower: 0
-Upper: 1
+ Type: VT_DATE
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -15789,14 +14802,14 @@ sub ReceivedTime() {
 #===============================================================================
 # Rinchi::Outlook::PostItem::SenderEmailAddress
 
-=item $value = $Object->SenderEmailAddress([$new_value]);
+=head2 $value = $Object->SenderEmailAddress([$new_value]);
 
 Set or get value of the SenderEmailAddress attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -15811,14 +14824,14 @@ sub SenderEmailAddress() {
 #===============================================================================
 # Rinchi::Outlook::PostItem::SenderEmailType
 
-=item $value = $Object->SenderEmailType([$new_value]);
+=head2 $value = $Object->SenderEmailType([$new_value]);
 
 Set or get value of the SenderEmailType attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -15833,14 +14846,14 @@ sub SenderEmailType() {
 #===============================================================================
 # Rinchi::Outlook::PostItem::SenderName
 
-=item $value = $Object->SenderName([$new_value]);
+=head2 $value = $Object->SenderName([$new_value]);
 
 Set or get value of the SenderName attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -15855,14 +14868,14 @@ sub SenderName() {
 #===============================================================================
 # Rinchi::Outlook::PostItem::SentOn
 
-=item $value = $Object->SentOn([$new_value]);
+=head2 $value = $Object->SentOn([$new_value]);
 
 Set or get value of the SentOn attribute.
 
   
-Type: VT_DATE
-Lower: 0
-Upper: 1
+ Type: VT_DATE
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -15888,25 +14901,18 @@ our @ISA = qw(Rinchi::Outlook::Element Rinchi::Outlook::OutlookItemObject);
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of RemoteItem class
 
-Rinchi::Outlook::RemoteItem - Module for representing RemoteItem objects.
+Rinchi::Outlook::RemoteItem is used for representing RemoteItem objects. A 
+RemoteItem objects represents a remote item in an Inbox (mail) folder. The 
+RemoteItem object is similar to the MailItem object, but it contains only 
+the Subject, Received Date and Time, Sender, Size, and the first 256 characters 
+of the body of the message. It is used to give someone connecting in remote 
+mode enough information to decide whether or not to download the corresponding 
+mail message. However, the headers in items contained in an Offline Folders file 
+(.ost) cannot be accessed using the RemoteItem object.
 
-=head1 DESCRIPTION of RemoteItem
-
-  Represents a remote item in an Inbox (mail) folder. The RemoteItem object is similar to the MailItem object, but it contains only the Subject, Received Date and Time, Sender, Size, and the first 256 characters of the body of the message. It is used to give someone connecting in remote mode enough information to decide whether or not to download the corresponding mail message. However, the headers in items contained in an Offline Folders file (.ost) cannot be accessed using the RemoteItem object.
-Using the RemoteItem Object
-
-Unlike other Microsoft Outlook objects, you cannot create this object. Remote items are created by Outlook automatically when you use a Remote Access System (RAS) connection. Each RemoteItem object created on the local system corresponds to a preexisting MailItem object on the remote system.
-
-The RemoteItem object inherits a number of properties, methods, and events that, because of the nature of the object, have no function. The Object Browser shows these properties, methods, and events as belonging to the RemoteItem object, but trying to use them will produce no effect.
-
-The methods that do not work for the RemoteItem object include Close, Copy, Display, Move, and Save.
-
-The properties that do not work for the RemoteItem object include BillingInformation, Body, Categories, Companies, and Mileage.
-
-The events that do not work for the RemoteItem object include Open, Close, Forward, Reply, ReplyAll, and Send.
-
+=head1 METHODS for RemoteItem objects
 
 =cut
 
@@ -15920,14 +14926,14 @@ The events that do not work for the RemoteItem object include Open, Close, Forwa
 #===============================================================================
 # Rinchi::Outlook::RemoteItem::HasAttachment
 
-=item $value = $Object->HasAttachment([$new_value]);
+=head2 $value = $Object->HasAttachment([$new_value]);
 
 Set or get value of the HasAttachment attribute.
 
   
-Type: Boolean
-Lower: 0
-Upper: 1
+ Type: Boolean
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -15946,14 +14952,14 @@ sub HasAttachment() {
 #===============================================================================
 # Rinchi::Outlook::RemoteItem::RemoteMessageClass
 
-=item $value = $Object->RemoteMessageClass([$new_value]);
+=head2 $value = $Object->RemoteMessageClass([$new_value]);
 
 Set or get value of the RemoteMessageClass attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -15968,14 +14974,14 @@ sub RemoteMessageClass() {
 #===============================================================================
 # Rinchi::Outlook::RemoteItem::TransferSize
 
-=item $value = $Object->TransferSize([$new_value]);
+=head2 $value = $Object->TransferSize([$new_value]);
 
 Set or get value of the TransferSize attribute.
 
   
-Type: Long
-Lower: 0
-Upper: 1
+ Type: Long
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -15994,14 +15000,14 @@ sub TransferSize() {
 #===============================================================================
 # Rinchi::Outlook::RemoteItem::TransferTime
 
-=item $value = $Object->TransferTime([$new_value]);
+=head2 $value = $Object->TransferTime([$new_value]);
 
 Set or get value of the TransferTime attribute.
 
   
-Type: Long
-Lower: 0
-Upper: 1
+ Type: Long
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -16031,16 +15037,14 @@ our @ISA = qw(Rinchi::Outlook::Element Rinchi::Outlook::OutlookItemObject);
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
-
-Rinchi::Outlook::ReportItem - Module for representing ReportItem objects.
-
 =head1 DESCRIPTION of ReportItem
 
-  Represents a mail-delivery report in an Inbox (mail) folder. The ReportItem object is similar to a MailItem  object, and it contains a report (usually the non-delivery report) or error message from the mail transport system.
-Using the ReportItem Object
+Rinchi::Outlook::ReportItem is used for representing ReportItem objects. A 
+ReportItem objects represents a mail-delivery report in an Inbox (mail) folder. 
+The ReportItem object is similar to a MailItem  object, and it contains a report 
+(usually the non-delivery report) or error message from the mail transport system.
 
-Unlike other Microsoft Outlook objects, you cannot create this object. Report items are created automatically when any report or error in general is received from the mail transport system.
+=head1 METHODS for ReportItem objects
 
 =cut
 
@@ -16065,42 +15069,13 @@ our @ISA = qw(Rinchi::Outlook::Element Rinchi::Outlook::OutlookItemObject);
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of TaskItem class
 
-Rinchi::Outlook::TaskItem - Module for representing TaskItem objects.
+Rinchi::Outlook::TaskItem is used for representing TaskItem objects. A TaskItem 
+object represents a task (an assigned, delegated, or self-imposed task to be 
+performed within a specified time frame) in a Tasks folder.
 
-=head1 DESCRIPTION of TaskItem
-
-  Represents a task (an assigned, delegated, or self-imposed task to be performed within a specified time frame) in a Tasks folder.
-Using The TaskItem Object
-
-Use the CreateItem method to create a TaskItem object that represents a new task.
-
-The following Visual Basic for Applications (VBA) example returns a new task.
-
-Set myOlApp = CreateObject("Outlook.Application")
-Set myItem = myOlApp.CreateItem(olTaskItem)
-		
-
-The following sample shows how to create a task using Microsoft Visual Basic Scripting Edition (VBScript).
-
-Set myItem = Application.CreateItem(3)
-		
-
-Use Items (index), where index is the index number of a task or a value used to match the default property of a task, to return a single TaskItem object from a Tasks folder.
-Remarks
-
-If a program tries to reference any type of recipient information by using the Outlook object model, a dialog box is displayed that asks you to confirm access to this information. You can allow access to the Address Book or recipient information for up to ten minutes after you receive the dialog box. This allows features, such as mobile device synchronization, to be completed.
-
-You receive the confirmation dialog box when a solution tries to programmatically access the following properties of the TaskItem object:
-
-    * ContactNames
-    * Delegator
-    * Owner
-    * StatusUpdateRecipients
-    * StatusOnCompletionRecipients
-
-
+=head1 METHODS for TaskItem objects
 
 =cut
 
@@ -16114,14 +15089,14 @@ You receive the confirmation dialog box when a solution tries to programmaticall
 #===============================================================================
 # Rinchi::Outlook::TaskItem::ActualWork
 
-=item $value = $Object->ActualWork([$new_value]);
+=head2 $value = $Object->ActualWork([$new_value]);
 
 Set or get value of the ActualWork attribute.
 
   
-Type: Long
-Lower: 0
-Upper: 1
+ Type: Long
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -16140,14 +15115,14 @@ sub ActualWork() {
 #===============================================================================
 # Rinchi::Outlook::TaskItem::CardData
 
-=item $value = $Object->CardData([$new_value]);
+=head2 $value = $Object->CardData([$new_value]);
 
 Set or get value of the CardData attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -16162,14 +15137,14 @@ sub CardData() {
 #===============================================================================
 # Rinchi::Outlook::TaskItem::Complete
 
-=item $value = $Object->Complete([$new_value]);
+=head2 $value = $Object->Complete([$new_value]);
 
 Set or get value of the Complete attribute.
 
   
-Type: Boolean
-Lower: 0
-Upper: 1
+ Type: Boolean
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -16188,14 +15163,14 @@ sub Complete() {
 #===============================================================================
 # Rinchi::Outlook::TaskItem::ContactNames
 
-=item $value = $Object->ContactNames([$new_value]);
+=head2 $value = $Object->ContactNames([$new_value]);
 
 Set or get value of the ContactNames attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -16210,14 +15185,14 @@ sub ContactNames() {
 #===============================================================================
 # Rinchi::Outlook::TaskItem::Contacts
 
-=item $value = $Object->Contacts([$new_value]);
+=head2 $value = $Object->Contacts([$new_value]);
 
 Set or get value of the Contacts attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -16232,14 +15207,14 @@ sub Contacts() {
 #===============================================================================
 # Rinchi::Outlook::TaskItem::DateCompleted
 
-=item $value = $Object->DateCompleted([$new_value]);
+=head2 $value = $Object->DateCompleted([$new_value]);
 
 Set or get value of the DateCompleted attribute.
 
   
-Type: VT_DATE
-Lower: 0
-Upper: 1
+ Type: VT_DATE
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -16254,14 +15229,14 @@ sub DateCompleted() {
 #===============================================================================
 # Rinchi::Outlook::TaskItem::DelegationState
 
-=item $value = $Object->DelegationState([$new_value]);
+=head2 $value = $Object->DelegationState([$new_value]);
 
 Set or get value of the DelegationState attribute.
 
   
-Type: OlTaskDelegationState
-Lower: 0
-Upper: 1
+ Type: OlTaskDelegationState
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -16284,14 +15259,14 @@ sub DelegationState() {
 #===============================================================================
 # Rinchi::Outlook::TaskItem::Delegator
 
-=item $value = $Object->Delegator([$new_value]);
+=head2 $value = $Object->Delegator([$new_value]);
 
 Set or get value of the Delegator attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -16306,14 +15281,14 @@ sub Delegator() {
 #===============================================================================
 # Rinchi::Outlook::TaskItem::DueDate
 
-=item $value = $Object->DueDate([$new_value]);
+=head2 $value = $Object->DueDate([$new_value]);
 
 Set or get value of the DueDate attribute.
 
   
-Type: VT_DATE
-Lower: 0
-Upper: 1
+ Type: VT_DATE
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -16328,14 +15303,14 @@ sub DueDate() {
 #===============================================================================
 # Rinchi::Outlook::TaskItem::InternetCodepage
 
-=item $value = $Object->InternetCodepage([$new_value]);
+=head2 $value = $Object->InternetCodepage([$new_value]);
 
 Set or get value of the InternetCodepage attribute.
 
   
-Type: Long
-Lower: 0
-Upper: 1
+ Type: Long
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -16354,14 +15329,14 @@ sub InternetCodepage() {
 #===============================================================================
 # Rinchi::Outlook::TaskItem::IsRecurring
 
-=item $value = $Object->IsRecurring([$new_value]);
+=head2 $value = $Object->IsRecurring([$new_value]);
 
 Set or get value of the IsRecurring attribute.
 
   
-Type: Boolean
-Lower: 0
-Upper: 1
+ Type: Boolean
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -16380,14 +15355,14 @@ sub IsRecurring() {
 #===============================================================================
 # Rinchi::Outlook::TaskItem::Ordinal
 
-=item $value = $Object->Ordinal([$new_value]);
+=head2 $value = $Object->Ordinal([$new_value]);
 
 Set or get value of the Ordinal attribute.
 
   
-Type: Long
-Lower: 0
-Upper: 1
+ Type: Long
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -16406,14 +15381,14 @@ sub Ordinal() {
 #===============================================================================
 # Rinchi::Outlook::TaskItem::Owner
 
-=item $value = $Object->Owner([$new_value]);
+=head2 $value = $Object->Owner([$new_value]);
 
 Set or get value of the Owner attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -16428,14 +15403,14 @@ sub Owner() {
 #===============================================================================
 # Rinchi::Outlook::TaskItem::Ownership
 
-=item $value = $Object->Ownership([$new_value]);
+=head2 $value = $Object->Ownership([$new_value]);
 
 Set or get value of the Ownership attribute.
 
   
-Type: OlTaskOwnership
-Lower: 0
-Upper: 1
+ Type: OlTaskOwnership
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -16458,14 +15433,14 @@ sub Ownership() {
 #===============================================================================
 # Rinchi::Outlook::TaskItem::PercentComplete
 
-=item $value = $Object->PercentComplete([$new_value]);
+=head2 $value = $Object->PercentComplete([$new_value]);
 
 Set or get value of the PercentComplete attribute.
 
   
-Type: Long
-Lower: 0
-Upper: 1
+ Type: Long
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -16484,14 +15459,14 @@ sub PercentComplete() {
 #===============================================================================
 # Rinchi::Outlook::TaskItem::Recipients
 
-=item $Element = $Object->Recipients();
+=head2 $Element = $Object->Recipients();
 
 Set or get value of the Recipients attribute.
 
   
-Type: Recipients
-Lower: 0
-Upper: 1
+ Type: Recipients
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -16503,14 +15478,14 @@ sub Recipients() {
 #===============================================================================
 # Rinchi::Outlook::TaskItem::ReminderOverrideDefault
 
-=item $value = $Object->ReminderOverrideDefault([$new_value]);
+=head2 $value = $Object->ReminderOverrideDefault([$new_value]);
 
 Set or get value of the ReminderOverrideDefault attribute.
 
   
-Type: Boolean
-Lower: 0
-Upper: 1
+ Type: Boolean
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -16529,14 +15504,14 @@ sub ReminderOverrideDefault() {
 #===============================================================================
 # Rinchi::Outlook::TaskItem::ReminderPlaySound
 
-=item $value = $Object->ReminderPlaySound([$new_value]);
+=head2 $value = $Object->ReminderPlaySound([$new_value]);
 
 Set or get value of the ReminderPlaySound attribute.
 
   
-Type: Boolean
-Lower: 0
-Upper: 1
+ Type: Boolean
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -16555,14 +15530,14 @@ sub ReminderPlaySound() {
 #===============================================================================
 # Rinchi::Outlook::TaskItem::ReminderSet
 
-=item $value = $Object->ReminderSet([$new_value]);
+=head2 $value = $Object->ReminderSet([$new_value]);
 
 Set or get value of the ReminderSet attribute.
 
   
-Type: Boolean
-Lower: 0
-Upper: 1
+ Type: Boolean
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -16581,14 +15556,14 @@ sub ReminderSet() {
 #===============================================================================
 # Rinchi::Outlook::TaskItem::ReminderSoundFile
 
-=item $value = $Object->ReminderSoundFile([$new_value]);
+=head2 $value = $Object->ReminderSoundFile([$new_value]);
 
 Set or get value of the ReminderSoundFile attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -16603,14 +15578,14 @@ sub ReminderSoundFile() {
 #===============================================================================
 # Rinchi::Outlook::TaskItem::ReminderTime
 
-=item $value = $Object->ReminderTime([$new_value]);
+=head2 $value = $Object->ReminderTime([$new_value]);
 
 Set or get value of the ReminderTime attribute.
 
   
-Type: VT_DATE
-Lower: 0
-Upper: 1
+ Type: VT_DATE
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -16625,14 +15600,14 @@ sub ReminderTime() {
 #===============================================================================
 # Rinchi::Outlook::TaskItem::ResponseState
 
-=item $value = $Object->ResponseState([$new_value]);
+=head2 $value = $Object->ResponseState([$new_value]);
 
 Set or get value of the ResponseState attribute.
 
   
-Type: OlTaskResponse
-Lower: 0
-Upper: 1
+ Type: OlTaskResponse
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -16655,14 +15630,14 @@ sub ResponseState() {
 #===============================================================================
 # Rinchi::Outlook::TaskItem::Role
 
-=item $value = $Object->Role([$new_value]);
+=head2 $value = $Object->Role([$new_value]);
 
 Set or get value of the Role attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -16677,14 +15652,14 @@ sub Role() {
 #===============================================================================
 # Rinchi::Outlook::TaskItem::SchedulePlusPriority
 
-=item $value = $Object->SchedulePlusPriority([$new_value]);
+=head2 $value = $Object->SchedulePlusPriority([$new_value]);
 
 Set or get value of the SchedulePlusPriority attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -16699,14 +15674,14 @@ sub SchedulePlusPriority() {
 #===============================================================================
 # Rinchi::Outlook::TaskItem::StartDate
 
-=item $value = $Object->StartDate([$new_value]);
+=head2 $value = $Object->StartDate([$new_value]);
 
 Set or get value of the StartDate attribute.
 
   
-Type: VT_DATE
-Lower: 0
-Upper: 1
+ Type: VT_DATE
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -16721,14 +15696,14 @@ sub StartDate() {
 #===============================================================================
 # Rinchi::Outlook::TaskItem::Status
 
-=item $value = $Object->Status([$new_value]);
+=head2 $value = $Object->Status([$new_value]);
 
 Set or get value of the Status attribute.
 
   
-Type: OlTaskStatus
-Lower: 0
-Upper: 1
+ Type: OlTaskStatus
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -16751,14 +15726,14 @@ sub Status() {
 #===============================================================================
 # Rinchi::Outlook::TaskItem::StatusOnCompletionRecipients
 
-=item $value = $Object->StatusOnCompletionRecipients([$new_value]);
+=head2 $value = $Object->StatusOnCompletionRecipients([$new_value]);
 
 Set or get value of the StatusOnCompletionRecipients attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -16773,14 +15748,14 @@ sub StatusOnCompletionRecipients() {
 #===============================================================================
 # Rinchi::Outlook::TaskItem::StatusUpdateRecipients
 
-=item $value = $Object->StatusUpdateRecipients([$new_value]);
+=head2 $value = $Object->StatusUpdateRecipients([$new_value]);
 
 Set or get value of the StatusUpdateRecipients attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -16795,14 +15770,14 @@ sub StatusUpdateRecipients() {
 #===============================================================================
 # Rinchi::Outlook::TaskItem::TeamTask
 
-=item $value = $Object->TeamTask([$new_value]);
+=head2 $value = $Object->TeamTask([$new_value]);
 
 Set or get value of the TeamTask attribute.
 
   
-Type: Boolean
-Lower: 0
-Upper: 1
+ Type: Boolean
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -16821,14 +15796,14 @@ sub TeamTask() {
 #===============================================================================
 # Rinchi::Outlook::TaskItem::TotalWork
 
-=item $value = $Object->TotalWork([$new_value]);
+=head2 $value = $Object->TotalWork([$new_value]);
 
 Set or get value of the TotalWork attribute.
 
   
-Type: Long
-Lower: 0
-Upper: 1
+ Type: Long
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -16858,20 +15833,18 @@ our @ISA = qw(Rinchi::Outlook::Element Rinchi::Outlook::OutlookItemObject);
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
-
-Rinchi::Outlook::TaskRequestAcceptItem - Module for representing TaskRequestAcceptItem objects.
-
 =head1 DESCRIPTION of TaskRequestAcceptItem
 
-  Represents an item in an Inbox (mail) folder.
+Rinchi::Outlook::TaskRequestAcceptItem is used for representing 
+TaskRequestAcceptItem objects. A TaskRequestAcceptItem object Represents an item 
+in an Inbox (mail) folder.
 
-A TaskRequestAcceptItem object represents a response to a TaskRequestItem sent by the initiating user. If the delegated user accepts the task, the ResponseState property is set to olTaskAccept. The associated TaskItem is received by the delegator as a TaskRequestAcceptItem object.
-Using the TaskRequestAcceptItem Object
+A TaskRequestAcceptItem object represents a response to a TaskRequestItem sent by 
+the initiating user. If the delegated user accepts the task, the ResponseState 
+property is set to olTaskAccept. The associated TaskItem is received by the 
+delegator as a TaskRequestAcceptItem object.
 
-Unlike other Microsoft Outlook objects, you cannot create this object.
-
-Use the GetAssociatedTask method to return the TaskItem object that is associated with this TaskRequestAcceptItem. Work directly with the TaskItem object.
+=head1 METHODS for TaskRequestAcceptItem objects
 
 =cut
 
@@ -16896,20 +15869,18 @@ our @ISA = qw(Rinchi::Outlook::Element Rinchi::Outlook::OutlookItemObject);
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of TaskRequestDeclineItem class
 
-Rinchi::Outlook::TaskRequestDeclineItem - Module for representing TaskRequestDeclineItem objects.
+Rinchi::Outlook::TaskRequestDeclineItem is used for representing 
+TaskRequestDeclineItem objects. A TaskRequestDeclineItem object represents an 
+item in an Inbox (mail) folder.
 
-=head1 DESCRIPTION of TaskRequestDeclineItem
+A TaskRequestDeclineItem object represents a response to a TaskRequestItem sent 
+by the initiating user. If the delegated user declines the task, the 
+ResponseState property is set to olTaskDecline. The associated TaskItem is 
+received by the delegator as a TaskRequestDeclineItem object.
 
-  Represents an item in an Inbox (mail) folder.
-
-A TaskRequestDeclineItem object represents a response to a TaskRequestItem sent by the initiating user. If the delegated user declines the task, the ResponseState property is set to olTaskDecline. The associated TaskItem is received by the delegator as a TaskRequestDeclineItem object.
-Using the TaskRequestDeclineItem Object
-
-Unlike other Microsoft Outlook objects, you cannot create this object.
-
-Use the GetAssociatedTask method to return the TaskItem object that is associated with this TaskRequestDeclineItem. Work directly with the TaskItem object.
+=head1 METHODS for TaskRequestDeclineItem objects
 
 =cut
 
@@ -16934,39 +15905,14 @@ our @ISA = qw(Rinchi::Outlook::Element Rinchi::Outlook::OutlookItemObject);
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of TaskRequestItem class
 
-Rinchi::Outlook::TaskRequestItem - Module for representing TaskRequestItem objects.
-
-=head1 DESCRIPTION of TaskRequestItem
-
-  Represents an item in an Inbox (mail) folder. A TaskRequestItem object represents a change to the recipient's Tasks list initiated by another party or as a result of a group tasking.
-Using the TaskRequestItem Object
-
-Unlike other Microsoft Outlook objects, you cannot create this object. When the sender applies the Assign and Send methods to a TaskItem object to assign (delegate) the associated task to another user, the TaskRequestItem object is created when the item is received in the recipient's Inbox.
-
-The following Visual Basic for Applications (VBA) example creates a simple task, assigns it to another user, and sends it. When the task request arrives in the recipient's Inbox, it is received as a TaskRequestItem.
-
-Set myOlApp = CreateObject("Outlook.Application")
-Set myItem = myOlApp.CreateItem(olTaskItem)
-myItem.Assign
-Set myDelegate = myItem.Recipients.Add("Jeff Smith")
-myItem.Subject = "Prepare Agenda For Meeting"
-myItem.DueDate = #9/20/97#
-myItem.Send
+Rinchi::Outlook::TaskRequestItem is used for representing TaskRequestItem 
+objects. A TaskRequestItem object represents an item in an Inbox (mail) folder. 
+A TaskRequestItem object represents a change to the recipient's Tasks list 
+initiated by another party or as a result of a group tasking.
 		
-
-The following example shows how to perform the same task using Microsoft Visual Basic Scripting Edition (VBScript).
-
-Set myItem = Application.CreateItem(3)
-myItem.Assign
-Set myDelegate = myItem.Recipients.Add("Jeff Smith")
-myItem.Subject = "Prepare Agenda For Meeting"
-myItem.DueDate = #9/20/97#
-myItem.Send
-		
-
-Use the GetAssociatedTask method to return the TaskItem object, and work directly with the TaskItem object to respond to the request.
+=head1 METHODS for TaskRequestItem objects
 
 =cut
 
@@ -16991,20 +15937,18 @@ our @ISA = qw(Rinchi::Outlook::Element Rinchi::Outlook::OutlookItemObject);
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of TaskRequestUpdateItem class
 
-Rinchi::Outlook::TaskRequestUpdateItem - Module for representing TaskRequestUpdateItem objects.
+Rinchi::Outlook::TaskRequestUpdateItem is used for representing 
+TaskRequestUpdateItem objects. A TaskRequestUpdateItem object represents an 
+item in an Inbox (mail) folder.
 
-=head1 DESCRIPTION of TaskRequestUpdateItem
+A TaskRequestUpdateItem object represents a response to a TaskRequestItem sent 
+by the initiating user. If the delegated user updates the task by changing 
+properties such as the DueDate or the Status, and then sends it, the associated 
+TaskItem is received by the delegator as a TaskRequestUpdateItem object.
 
-  Represents an item in an Inbox (mail) folder.
-
-A TaskRequestUpdateItem object represents a response to a TaskRequestItem sent by the initiating user. If the delegated user updates the task by changing properties such as the DueDate or the Status, and then sends it, the associated TaskItem is received by the delegator as a TaskRequestUpdateItem object.
-Using the TaskRequestUpdateItem Object
-
-Unlike other Microsoft Outlook objects, you cannot create this object.
-
-Use the GetAssociatedTask method to return the TaskItem object that is associated with this TaskRequestUpdateItem. Work directly with the TaskItem object.
+=head1 METHODS for TaskRequestUpdateItem objects
 
 =cut
 
@@ -17029,13 +15973,13 @@ our @ISA = qw(Rinchi::Outlook::Element Rinchi::Outlook::BasicElement);
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of OutlookBaseItemObject class
 
-Rinchi::Outlook::OutlookBaseItemObject - Module for representing OutlookBaseItemObject objects.
+Rinchi::Outlook::OutlookBaseItemObject is an abstract class used for 
+representing OutlookBaseItemObject objects. Classes derived from 
+OutlookBaseItemObject include OutlookItemObject and NoteItem.
 
-=head1 DESCRIPTION of OutlookBaseItemObject
-
-  
+=head1 METHODS for OutlookBaseItemObject objects
 
 =cut
 
@@ -17049,14 +15993,14 @@ Rinchi::Outlook::OutlookBaseItemObject - Module for representing OutlookBaseItem
 #===============================================================================
 # Rinchi::Outlook::OutlookBaseItemObject::Application
 
-=item $value = $Object->Application([$new_value]);
+=head2 $value = $Object->Application([$new_value]);
 
 Set or get value of the Application attribute.
 
   
-Type: Application
-Lower: 0
-Upper: 1
+ Type: Application
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -17076,14 +16020,14 @@ sub Application() {
 #===============================================================================
 # Rinchi::Outlook::OutlookBaseItemObject::AutoResolvedWinner
 
-=item $value = $Object->AutoResolvedWinner([$new_value]);
+=head2 $value = $Object->AutoResolvedWinner([$new_value]);
 
 Set or get value of the AutoResolvedWinner attribute.
 
   
-Type: Boolean
-Lower: 0
-Upper: 1
+ Type: Boolean
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -17102,14 +16046,14 @@ sub AutoResolvedWinner() {
 #===============================================================================
 # Rinchi::Outlook::OutlookBaseItemObject::Body
 
-=item $value = $Object->Body([$new_value]);
+=head2 $value = $Object->Body([$new_value]);
 
 Set or get value of the Body attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -17124,14 +16068,14 @@ sub Body() {
 #===============================================================================
 # Rinchi::Outlook::OutlookBaseItemObject::Categories
 
-=item $value = $Object->Categories([$new_value]);
+=head2 $value = $Object->Categories([$new_value]);
 
 Set or get value of the Categories attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -17146,14 +16090,14 @@ sub Categories() {
 #===============================================================================
 # Rinchi::Outlook::OutlookBaseItemObject::Class
 
-=item $value = $Object->Class([$new_value]);
+=head2 $value = $Object->Class([$new_value]);
 
 Set or get value of the Class attribute.
 
   
-Type: OlObjectClass
-Lower: 0
-Upper: 1
+ Type: OlObjectClass
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -17176,14 +16120,14 @@ sub Class() {
 #===============================================================================
 # Rinchi::Outlook::OutlookBaseItemObject::Conflicts
 
-=item $Element = $Object->Conflicts();
+=head2 $Element = $Object->Conflicts();
 
 Set or get value of the Conflicts attribute.
 
   
-Type: Conflicts
-Lower: 0
-Upper: 1
+ Type: Conflicts
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -17195,14 +16139,14 @@ sub Conflicts() {
 #===============================================================================
 # Rinchi::Outlook::OutlookBaseItemObject::CreationTime
 
-=item $value = $Object->CreationTime([$new_value]);
+=head2 $value = $Object->CreationTime([$new_value]);
 
 Set or get value of the CreationTime attribute.
 
   
-Type: VT_DATE
-Lower: 0
-Upper: 1
+ Type: VT_DATE
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -17217,14 +16161,14 @@ sub CreationTime() {
 #===============================================================================
 # Rinchi::Outlook::OutlookBaseItemObject::DownloadState
 
-=item $value = $Object->DownloadState([$new_value]);
+=head2 $value = $Object->DownloadState([$new_value]);
 
 Set or get value of the DownloadState attribute.
 
   
-Type: OlDownloadState
-Lower: 0
-Upper: 1
+ Type: OlDownloadState
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -17247,14 +16191,14 @@ sub DownloadState() {
 #===============================================================================
 # Rinchi::Outlook::OutlookBaseItemObject::EntryID
 
-=item $value = $Object->EntryID([$new_value]);
+=head2 $value = $Object->EntryID([$new_value]);
 
 Set or get value of the EntryID attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -17269,14 +16213,14 @@ sub EntryID() {
 #===============================================================================
 # Rinchi::Outlook::OutlookBaseItemObject::GetInspector
 
-=item $value = $Object->GetInspector([$new_value]);
+=head2 $value = $Object->GetInspector([$new_value]);
 
 Set or get value of the GetInspector attribute.
 
   
-Type: Inspector
-Lower: 0
-Upper: 1
+ Type: Inspector
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -17296,14 +16240,14 @@ sub GetInspector() {
 #===============================================================================
 # Rinchi::Outlook::OutlookBaseItemObject::IsConflict
 
-=item $value = $Object->IsConflict([$new_value]);
+=head2 $value = $Object->IsConflict([$new_value]);
 
 Set or get value of the IsConflict attribute.
 
   
-Type: Boolean
-Lower: 0
-Upper: 1
+ Type: Boolean
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -17322,14 +16266,14 @@ sub IsConflict() {
 #===============================================================================
 # Rinchi::Outlook::OutlookBaseItemObject::ItemProperties
 
-=item $Element = $Object->ItemProperties();
+=head2 $Element = $Object->ItemProperties();
 
 Set or get value of the ItemProperties attribute.
 
   
-Type: ItemProperties
-Lower: 0
-Upper: 1
+ Type: ItemProperties
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -17341,14 +16285,14 @@ sub ItemProperties() {
 #===============================================================================
 # Rinchi::Outlook::OutlookBaseItemObject::LastModificationTime
 
-=item $value = $Object->LastModificationTime([$new_value]);
+=head2 $value = $Object->LastModificationTime([$new_value]);
 
 Set or get value of the LastModificationTime attribute.
 
   
-Type: VT_DATE
-Lower: 0
-Upper: 1
+ Type: VT_DATE
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -17363,14 +16307,14 @@ sub LastModificationTime() {
 #===============================================================================
 # Rinchi::Outlook::OutlookBaseItemObject::Links
 
-=item $Element = $Object->Links();
+=head2 $Element = $Object->Links();
 
 Set or get value of the Links attribute.
 
   
-Type: Links
-Lower: 0
-Upper: 1
+ Type: Links
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -17382,14 +16326,14 @@ sub Links() {
 #===============================================================================
 # Rinchi::Outlook::OutlookBaseItemObject::MarkForDownload
 
-=item $value = $Object->MarkForDownload([$new_value]);
+=head2 $value = $Object->MarkForDownload([$new_value]);
 
 Set or get value of the MarkForDownload attribute.
 
   
-Type: OlRemoteStatus
-Lower: 0
-Upper: 1
+ Type: OlRemoteStatus
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -17412,14 +16356,14 @@ sub MarkForDownload() {
 #===============================================================================
 # Rinchi::Outlook::OutlookBaseItemObject::MessageClass
 
-=item $value = $Object->MessageClass([$new_value]);
+=head2 $value = $Object->MessageClass([$new_value]);
 
 Set or get value of the MessageClass attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -17434,14 +16378,14 @@ sub MessageClass() {
 #===============================================================================
 # Rinchi::Outlook::OutlookBaseItemObject::Parent
 
-=item $value = $Object->Parent([$new_value]);
+=head2 $value = $Object->Parent([$new_value]);
 
 Set or get value of the Parent attribute.
 
   
-Type: Object
-Lower: 0
-Upper: 1
+ Type: Object
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -17461,14 +16405,14 @@ sub Parent() {
 #===============================================================================
 # Rinchi::Outlook::OutlookBaseItemObject::Saved
 
-=item $value = $Object->Saved([$new_value]);
+=head2 $value = $Object->Saved([$new_value]);
 
 Set or get value of the Saved attribute.
 
   
-Type: Boolean
-Lower: 0
-Upper: 1
+ Type: Boolean
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -17487,14 +16431,14 @@ sub Saved() {
 #===============================================================================
 # Rinchi::Outlook::OutlookBaseItemObject::Session
 
-=item $value = $Object->Session([$new_value]);
+=head2 $value = $Object->Session([$new_value]);
 
 Set or get value of the Session attribute.
 
   
-Type: NameSpace
-Lower: 0
-Upper: 1
+ Type: NameSpace
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -17514,14 +16458,14 @@ sub Session() {
 #===============================================================================
 # Rinchi::Outlook::OutlookBaseItemObject::Size
 
-=item $value = $Object->Size([$new_value]);
+=head2 $value = $Object->Size([$new_value]);
 
 Set or get value of the Size attribute.
 
   
-Type: Long
-Lower: 0
-Upper: 1
+ Type: Long
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -17540,14 +16484,14 @@ sub Size() {
 #===============================================================================
 # Rinchi::Outlook::OutlookBaseItemObject::Subject
 
-=item $value = $Object->Subject([$new_value]);
+=head2 $value = $Object->Subject([$new_value]);
 
 Set or get value of the Subject attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -17573,13 +16517,29 @@ our @ISA = qw(Rinchi::Outlook::Element Rinchi::Outlook::OutlookBaseItemObject);
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of OutlookItemObject class
 
-Rinchi::Outlook::OutlookItemObject - Module for representing OutlookItemObject objects.
+Rinchi::Outlook::OutlookItemObject is an abstract class used for representing 
+OutlookItemObject objects. Classes derived from OutlookItemObject include the
+following:
 
-=head1 DESCRIPTION of OutlookItemObject
+  AppointmentItem
+  ContactItem
+  DistListItem
+  DocumentItem
+  JournalItem
+  MailItem
+  MeetingItem
+  PostItem
+  RemoteItem
+  ReportItem
+  TaskItem
+  TaskRequestAcceptItem
+  TaskRequestDeclineItem
+  TaskRequestItem
+  TaskRequestUpdateItem
 
-  
+=head1 METHODS for OutlookItemObject objects
 
 =cut
 
@@ -17593,14 +16553,14 @@ Rinchi::Outlook::OutlookItemObject - Module for representing OutlookItemObject o
 #===============================================================================
 # Rinchi::Outlook::OutlookItemObject::Actions
 
-=item $Element = $Object->Actions();
+=head2 $Element = $Object->Actions();
 
 Set or get value of the Actions attribute.
 
   
-Type: Actions
-Lower: 0
-Upper: 1
+ Type: Actions
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -17612,14 +16572,14 @@ sub Actions() {
 #===============================================================================
 # Rinchi::Outlook::OutlookItemObject::Attachments
 
-=item $Element = $Object->Attachments();
+=head2 $Element = $Object->Attachments();
 
 Set or get value of the Attachments attribute.
 
   
-Type: Attachments
-Lower: 0
-Upper: 1
+ Type: Attachments
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -17631,14 +16591,14 @@ sub Attachments() {
 #===============================================================================
 # Rinchi::Outlook::OutlookItemObject::BillingInformation
 
-=item $value = $Object->BillingInformation([$new_value]);
+=head2 $value = $Object->BillingInformation([$new_value]);
 
 Set or get value of the BillingInformation attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -17653,14 +16613,14 @@ sub BillingInformation() {
 #===============================================================================
 # Rinchi::Outlook::OutlookItemObject::Companies
 
-=item $value = $Object->Companies([$new_value]);
+=head2 $value = $Object->Companies([$new_value]);
 
 Set or get value of the Companies attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -17675,14 +16635,14 @@ sub Companies() {
 #===============================================================================
 # Rinchi::Outlook::OutlookItemObject::ConversationIndex
 
-=item $value = $Object->ConversationIndex([$new_value]);
+=head2 $value = $Object->ConversationIndex([$new_value]);
 
 Set or get value of the ConversationIndex attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -17697,14 +16657,14 @@ sub ConversationIndex() {
 #===============================================================================
 # Rinchi::Outlook::OutlookItemObject::ConversationTopic
 
-=item $value = $Object->ConversationTopic([$new_value]);
+=head2 $value = $Object->ConversationTopic([$new_value]);
 
 Set or get value of the ConversationTopic attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -17719,14 +16679,14 @@ sub ConversationTopic() {
 #===============================================================================
 # Rinchi::Outlook::OutlookItemObject::FormDescription
 
-=item $value = $Object->FormDescription([$new_value]);
+=head2 $value = $Object->FormDescription([$new_value]);
 
 Set or get value of the FormDescription attribute.
 
   
-Type: FormDescription
-Lower: 0
-Upper: 1
+ Type: FormDescription
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -17746,14 +16706,14 @@ sub FormDescription() {
 #===============================================================================
 # Rinchi::Outlook::OutlookItemObject::Importance
 
-=item $value = $Object->Importance([$new_value]);
+=head2 $value = $Object->Importance([$new_value]);
 
 Set or get value of the Importance attribute.
 
   
-Type: OlImportance
-Lower: 0
-Upper: 1
+ Type: OlImportance
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -17776,14 +16736,14 @@ sub Importance() {
 #===============================================================================
 # Rinchi::Outlook::OutlookItemObject::Mileage
 
-=item $value = $Object->Mileage([$new_value]);
+=head2 $value = $Object->Mileage([$new_value]);
 
 Set or get value of the Mileage attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -17798,14 +16758,14 @@ sub Mileage() {
 #===============================================================================
 # Rinchi::Outlook::OutlookItemObject::NoAging
 
-=item $value = $Object->NoAging([$new_value]);
+=head2 $value = $Object->NoAging([$new_value]);
 
 Set or get value of the NoAging attribute.
 
   
-Type: Boolean
-Lower: 0
-Upper: 1
+ Type: Boolean
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -17824,14 +16784,14 @@ sub NoAging() {
 #===============================================================================
 # Rinchi::Outlook::OutlookItemObject::OutlookInternalVersion
 
-=item $value = $Object->OutlookInternalVersion([$new_value]);
+=head2 $value = $Object->OutlookInternalVersion([$new_value]);
 
 Set or get value of the OutlookInternalVersion attribute.
 
   
-Type: Long
-Lower: 0
-Upper: 1
+ Type: Long
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -17850,14 +16810,14 @@ sub OutlookInternalVersion() {
 #===============================================================================
 # Rinchi::Outlook::OutlookItemObject::OutlookVersion
 
-=item $value = $Object->OutlookVersion([$new_value]);
+=head2 $value = $Object->OutlookVersion([$new_value]);
 
 Set or get value of the OutlookVersion attribute.
 
   
-Type: String
-Lower: 0
-Upper: 1
+ Type: String
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -17872,14 +16832,14 @@ sub OutlookVersion() {
 #===============================================================================
 # Rinchi::Outlook::OutlookItemObject::Sensitivity
 
-=item $value = $Object->Sensitivity([$new_value]);
+=head2 $value = $Object->Sensitivity([$new_value]);
 
 Set or get value of the Sensitivity attribute.
 
   
-Type: OlSensitivity
-Lower: 0
-Upper: 1
+ Type: OlSensitivity
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -17902,14 +16862,14 @@ sub Sensitivity() {
 #===============================================================================
 # Rinchi::Outlook::OutlookItemObject::UnRead
 
-=item $value = $Object->UnRead([$new_value]);
+=head2 $value = $Object->UnRead([$new_value]);
 
 Set or get value of the UnRead attribute.
 
   
-Type: Boolean
-Lower: 0
-Upper: 1
+ Type: Boolean
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -17928,14 +16888,14 @@ sub UnRead() {
 #===============================================================================
 # Rinchi::Outlook::OutlookItemObject::UserProperties
 
-=item $Element = $Object->UserProperties();
+=head2 $Element = $Object->UserProperties();
 
 Set or get value of the UserProperties attribute.
 
   
-Type: UserProperties
-Lower: 0
-Upper: 1
+ Type: UserProperties
+ Lower: 0
+ Upper: 1
 
 =cut
 
@@ -17956,13 +16916,18 @@ our @ISA = qw();
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of OlActionCopyLike enumeration
 
-Rinchi::Outlook::OlActionCopyLike - Module representing the OlActionCopyLike enumeration.
+Rinchi::Outlook::OlActionCopyLike is used for representing the OlActionCopyLike 
+enumeration.
 
-=head1 DESCRIPTION of OlActionCopyLike
+=head1 CONSTANTS for the OlActionCopyLike enumeration
 
-  
+ olReply                                   => 0
+ olReplyAll                                => 1
+ olForward                                 => 2
+ olReplyFolder                             => 3
+ olRespond                                 => 4
 
 =cut
 
@@ -17984,11 +16949,15 @@ my @_literal_list_OlActionCopyLike = (
 #===============================================================================
 # Rinchi::Outlook::OlActionCopyLike::Literals
 
-=item @Literals = Rinchi::Outlook::OlActionCopyLike::Literals
-  or
-%Literals = Rinchi::Outlook::OlActionCopyLike::Literals
+=head1 METHODS for the OlActionCopyLike enumeration
+
+=head2 @Literals = Rinchi::Outlook::OlActionCopyLike::Literals
 
 Returns an array of literal name-value pairs.
+
+=head2 %Literals = Rinchi::Outlook::OlActionCopyLike::Literals
+
+Returns a hash of literal name-value pairs.
 
 =cut
 
@@ -18007,43 +16976,53 @@ our @ISA = qw();
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
-
-Rinchi::Outlook::OlActionReplyStyle - Module representing the OlActionReplyStyle enumeration.
-
 =head1 DESCRIPTION of OlActionReplyStyle
 
-  
+Rinchi::Outlook::OlActionReplyStyle is used representing the OlActionReplyStyle enumeration.
+
+=head1 CONSTANTS for the OlActionReplyStyle enumeration
+
+ olOmitOriginalText                        => 0
+ olEmbedOriginalItem                       => 1
+ olIncludeOriginalText                     => 2
+ olIndentOriginalText                      => 3
+ olLinkOriginalItem                        => 4
+ olUserPreference                          => 5
+ olReplyTickOriginalText                   => 1000
 
 =cut
 
 #===============================================================================
   *olOmitOriginalText                        = sub { return 0; };
   *olEmbedOriginalItem                       = sub { return 1; };
-  *olReplyTickOriginalText                   = sub { return 1000; };
   *olIncludeOriginalText                     = sub { return 2; };
   *olIndentOriginalText                      = sub { return 3; };
   *olLinkOriginalItem                        = sub { return 4; };
   *olUserPreference                          = sub { return 5; };
+  *olReplyTickOriginalText                   = sub { return 1000; };
 
 my @_literal_list_OlActionReplyStyle = (
   'olOmitOriginalText'                        => 0,
   'olEmbedOriginalItem'                       => 1,
-  'olReplyTickOriginalText'                   => 1000,
   'olIncludeOriginalText'                     => 2,
   'olIndentOriginalText'                      => 3,
   'olLinkOriginalItem'                        => 4,
   'olUserPreference'                          => 5,
+  'olReplyTickOriginalText'                   => 1000,
 );
 
 #===============================================================================
 # Rinchi::Outlook::OlActionReplyStyle::Literals
 
-=item @Literals = Rinchi::Outlook::OlActionReplyStyle::Literals
-  or
-%Literals = Rinchi::Outlook::OlActionReplyStyle::Literals
+=head1 METHODS for the OlActionReplyStyle enumeration
+
+=head2 @Literals = Rinchi::Outlook::OlActionReplyStyle::Literals
 
 Returns an array of literal name-value pairs.
+
+=head2 %Literals = Rinchi::Outlook::OlActionReplyStyle::Literals
+
+Returns a hash of literal name-value pairs.
 
 =cut
 
@@ -18062,13 +17041,15 @@ our @ISA = qw();
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of OlActionResponseStyle enumeration
 
-Rinchi::Outlook::OlActionResponseStyle - Module representing the OlActionResponseStyle enumeration.
+Rinchi::Outlook::OlActionResponseStyle - Module representing the OlActionResponseStyle enumeration. 
 
-=head1 DESCRIPTION of OlActionResponseStyle
+=head1 CONSTANTS for the OlActionResponseStyle enumeration
 
-  
+ olOpen                                    => 0
+ olSend                                    => 1
+ olPrompt                                  => 2
 
 =cut
 
@@ -18086,11 +17067,15 @@ my @_literal_list_OlActionResponseStyle = (
 #===============================================================================
 # Rinchi::Outlook::OlActionResponseStyle::Literals
 
-=item @Literals = Rinchi::Outlook::OlActionResponseStyle::Literals
-  or
-%Literals = Rinchi::Outlook::OlActionResponseStyle::Literals
+=head1 METHODS for the OlActionResponseStyle enumeration
+
+=head2 @Literals = Rinchi::Outlook::OlActionResponseStyle::Literals
 
 Returns an array of literal name-value pairs.
+
+=head2 %Literals = Rinchi::Outlook::OlActionResponseStyle::Literals
+
+Returns a hash of literal name-value pairs.
 
 =cut
 
@@ -18109,13 +17094,15 @@ our @ISA = qw();
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of OlActionShowOn enumeration
 
-Rinchi::Outlook::OlActionShowOn - Module representing the OlActionShowOn enumeration.
+Rinchi::Outlook::OlActionShowOn - Module representing the OlActionShowOn enumeration. 
 
-=head1 DESCRIPTION of OlActionShowOn
+=head1 CONSTANTS for the OlActionShowOn enumeration
 
-  
+ olDontShow                                => 0
+ olMenu                                    => 1
+ olMenuAndToolbar                          => 2
 
 =cut
 
@@ -18133,11 +17120,15 @@ my @_literal_list_OlActionShowOn = (
 #===============================================================================
 # Rinchi::Outlook::OlActionShowOn::Literals
 
-=item @Literals = Rinchi::Outlook::OlActionShowOn::Literals
-  or
-%Literals = Rinchi::Outlook::OlActionShowOn::Literals
+=head1 METHODS for the OlActionShowOn enumeration
+
+=head2 @Literals = Rinchi::Outlook::OlActionShowOn::Literals
 
 Returns an array of literal name-value pairs.
+
+=head2 %Literals = Rinchi::Outlook::OlActionShowOn::Literals
+
+Returns a hash of literal name-value pairs.
 
 =cut
 
@@ -18156,13 +17147,16 @@ our @ISA = qw();
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of OlAttachmentType enumeration
 
-Rinchi::Outlook::OlAttachmentType - Module representing the OlAttachmentType enumeration.
+Rinchi::Outlook::OlAttachmentType - Module representing the OlAttachmentType enumeration. 
 
-=head1 DESCRIPTION of OlAttachmentType
+=head1 CONSTANTS for the OlAttachmentType enumeration
 
-  
+ olByValue                                 => 1
+ olByReference                             => 4
+ olEmbeddeditem                            => 5
+ olOLE                                     => 6
 
 =cut
 
@@ -18182,11 +17176,15 @@ my @_literal_list_OlAttachmentType = (
 #===============================================================================
 # Rinchi::Outlook::OlAttachmentType::Literals
 
-=item @Literals = Rinchi::Outlook::OlAttachmentType::Literals
-  or
-%Literals = Rinchi::Outlook::OlAttachmentType::Literals
+=head1 METHODS for the OlAttachmentType enumeration
+
+=head2 @Literals = Rinchi::Outlook::OlAttachmentType::Literals
 
 Returns an array of literal name-value pairs.
+
+=head2 %Literals = Rinchi::Outlook::OlAttachmentType::Literals
+
+Returns a hash of literal name-value pairs.
 
 =cut
 
@@ -18205,13 +17203,16 @@ our @ISA = qw();
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of OlBodyFormat enumeration
 
-Rinchi::Outlook::OlBodyFormat - Module representing the OlBodyFormat enumeration.
+Rinchi::Outlook::OlBodyFormat - Module representing the OlBodyFormat enumeration. 
 
-=head1 DESCRIPTION of OlBodyFormat
+=head1 CONSTANTS for the OlBodyFormat enumeration
 
-  
+ olFormatUnspecified                       => 0
+ olFormatPlain                             => 1
+ olFormatHTML                              => 2
+ olFormatRichText                          => 3
 
 =cut
 
@@ -18231,11 +17232,15 @@ my @_literal_list_OlBodyFormat = (
 #===============================================================================
 # Rinchi::Outlook::OlBodyFormat::Literals
 
-=item @Literals = Rinchi::Outlook::OlBodyFormat::Literals
-  or
-%Literals = Rinchi::Outlook::OlBodyFormat::Literals
+=head1 METHODS for the OlBodyFormat enumeration
+
+=head2 @Literals = Rinchi::Outlook::OlBodyFormat::Literals
 
 Returns an array of literal name-value pairs.
+
+=head2 %Literals = Rinchi::Outlook::OlBodyFormat::Literals
+
+Returns a hash of literal name-value pairs.
 
 =cut
 
@@ -18254,13 +17259,16 @@ our @ISA = qw();
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of OlBusyStatus enumeration
 
-Rinchi::Outlook::OlBusyStatus - Module representing the OlBusyStatus enumeration.
+Rinchi::Outlook::OlBusyStatus - Module representing the OlBusyStatus enumeration. 
 
-=head1 DESCRIPTION of OlBusyStatus
+=head1 CONSTANTS for the OlBusyStatus enumeration
 
-  
+ olFree                                    => 0
+ olTentative                               => 1
+ olBusy                                    => 2
+ olOutOfOffice                             => 3
 
 =cut
 
@@ -18280,11 +17288,15 @@ my @_literal_list_OlBusyStatus = (
 #===============================================================================
 # Rinchi::Outlook::OlBusyStatus::Literals
 
-=item @Literals = Rinchi::Outlook::OlBusyStatus::Literals
-  or
-%Literals = Rinchi::Outlook::OlBusyStatus::Literals
+=head1 METHODS for the OlBusyStatus enumeration
+
+=head2 @Literals = Rinchi::Outlook::OlBusyStatus::Literals
 
 Returns an array of literal name-value pairs.
+
+=head2 %Literals = Rinchi::Outlook::OlBusyStatus::Literals
+
+Returns a hash of literal name-value pairs.
 
 =cut
 
@@ -18303,13 +17315,19 @@ our @ISA = qw();
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of OlDaysOfWeek enumeration
 
-Rinchi::Outlook::OlDaysOfWeek - Module representing the OlDaysOfWeek enumeration.
+Rinchi::Outlook::OlDaysOfWeek - Module representing the OlDaysOfWeek enumeration. 
 
-=head1 DESCRIPTION of OlDaysOfWeek
+=head1 CONSTANTS for the OlDaysOfWeek enumeration
 
-  
+ olSunday                                  => 1
+ olThursday                                => 16
+ olMonday                                  => 2
+ olFriday                                  => 32
+ olTuesday                                 => 4
+ olSaturday                                => 64
+ olWednesday                               => 8
 
 =cut
 
@@ -18335,11 +17353,15 @@ my @_literal_list_OlDaysOfWeek = (
 #===============================================================================
 # Rinchi::Outlook::OlDaysOfWeek::Literals
 
-=item @Literals = Rinchi::Outlook::OlDaysOfWeek::Literals
-  or
-%Literals = Rinchi::Outlook::OlDaysOfWeek::Literals
+=head1 METHODS for the OlDaysOfWeek enumeration
+
+=head2 @Literals = Rinchi::Outlook::OlDaysOfWeek::Literals
 
 Returns an array of literal name-value pairs.
+
+=head2 %Literals = Rinchi::Outlook::OlDaysOfWeek::Literals
+
+Returns a hash of literal name-value pairs.
 
 =cut
 
@@ -18358,13 +17380,28 @@ our @ISA = qw();
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of OlDefaultFolders enumeration
 
-Rinchi::Outlook::OlDefaultFolders - Module representing the OlDefaultFolders enumeration.
+Rinchi::Outlook::OlDefaultFolders - Module representing the OlDefaultFolders enumeration. 
 
-=head1 DESCRIPTION of OlDefaultFolders
+=head1 CONSTANTS for the OlDefaultFolders enumeration
 
-  
+ olFolderDeletedItems                      => 3
+ olFolderOutbox                            => 4
+ olFolderSentMail                          => 5
+ olFolderInbox                             => 6
+ olFolderCalendar                          => 9
+ olFolderContacts                          => 10
+ olFolderJournal                           => 11
+ olFolderNotes                             => 12
+ olFolderTasks                             => 13
+ olFolderDrafts                            => 16
+ olPublicFoldersAllPublicFolders           => 18
+ olFolderConflicts                         => 19
+ olFolderSyncIssues                        => 20
+ olFolderLocalFailures                     => 21
+ olFolderServerFailures                    => 22
+ olFolderJunk                              => 23
 
 =cut
 
@@ -18387,6 +17424,11 @@ Rinchi::Outlook::OlDefaultFolders - Module representing the OlDefaultFolders enu
   *olFolderCalendar                          = sub { return 9; };
 
 my @_literal_list_OlDefaultFolders = (
+  'olFolderDeletedItems'                      => 3,
+  'olFolderOutbox'                            => 4,
+  'olFolderSentMail'                          => 5,
+  'olFolderInbox'                             => 6,
+  'olFolderCalendar'                          => 9,
   'olFolderContacts'                          => 10,
   'olFolderJournal'                           => 11,
   'olFolderNotes'                             => 12,
@@ -18398,21 +17440,20 @@ my @_literal_list_OlDefaultFolders = (
   'olFolderLocalFailures'                     => 21,
   'olFolderServerFailures'                    => 22,
   'olFolderJunk'                              => 23,
-  'olFolderDeletedItems'                      => 3,
-  'olFolderOutbox'                            => 4,
-  'olFolderSentMail'                          => 5,
-  'olFolderInbox'                             => 6,
-  'olFolderCalendar'                          => 9,
 );
 
 #===============================================================================
 # Rinchi::Outlook::OlDefaultFolders::Literals
 
-=item @Literals = Rinchi::Outlook::OlDefaultFolders::Literals
-  or
-%Literals = Rinchi::Outlook::OlDefaultFolders::Literals
+=head1 METHODS for the OlDefaultFolders enumeration
+
+=head2 @Literals = Rinchi::Outlook::OlDefaultFolders::Literals
 
 Returns an array of literal name-value pairs.
+
+=head2 %Literals = Rinchi::Outlook::OlDefaultFolders::Literals
+
+Returns a hash of literal name-value pairs.
 
 =cut
 
@@ -18431,13 +17472,19 @@ our @ISA = qw();
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of OlDisplayType enumeration
 
-Rinchi::Outlook::OlDisplayType - Module representing the OlDisplayType enumeration.
+Rinchi::Outlook::OlDisplayType - Module representing the OlDisplayType enumeration. 
 
-=head1 DESCRIPTION of OlDisplayType
+=head1 CONSTANTS for the OlDisplayType enumeration
 
-  
+ olUser                                    => 0
+ olDistList                                => 1
+ olForum                                   => 2
+ olAgent                                   => 3
+ olOrganization                            => 4
+ olPrivateDistList                         => 5
+ olRemoteUser                              => 6
 
 =cut
 
@@ -18463,11 +17510,15 @@ my @_literal_list_OlDisplayType = (
 #===============================================================================
 # Rinchi::Outlook::OlDisplayType::Literals
 
-=item @Literals = Rinchi::Outlook::OlDisplayType::Literals
-  or
-%Literals = Rinchi::Outlook::OlDisplayType::Literals
+=head1 METHODS for the OlDisplayType enumeration
+
+=head2 @Literals = Rinchi::Outlook::OlDisplayType::Literals
 
 Returns an array of literal name-value pairs.
+
+=head2 %Literals = Rinchi::Outlook::OlDisplayType::Literals
+
+Returns a hash of literal name-value pairs.
 
 =cut
 
@@ -18486,13 +17537,14 @@ our @ISA = qw();
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of OlDownloadState enumeration
 
-Rinchi::Outlook::OlDownloadState - Module representing the OlDownloadState enumeration.
+Rinchi::Outlook::OlDownloadState - Module representing the OlDownloadState enumeration. 
 
-=head1 DESCRIPTION of OlDownloadState
+=head1 CONSTANTS for the OlDownloadState enumeration
 
-  
+ olHeaderOnly                              => 0
+ olFullItem                                => 1
 
 =cut
 
@@ -18508,11 +17560,15 @@ my @_literal_list_OlDownloadState = (
 #===============================================================================
 # Rinchi::Outlook::OlDownloadState::Literals
 
-=item @Literals = Rinchi::Outlook::OlDownloadState::Literals
-  or
-%Literals = Rinchi::Outlook::OlDownloadState::Literals
+=head1 METHODS for the OlDownloadState enumeration
+
+=head2 @Literals = Rinchi::Outlook::OlDownloadState::Literals
 
 Returns an array of literal name-value pairs.
+
+=head2 %Literals = Rinchi::Outlook::OlDownloadState::Literals
+
+Returns a hash of literal name-value pairs.
 
 =cut
 
@@ -18531,13 +17587,16 @@ our @ISA = qw();
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of OlEditorType enumeration
 
-Rinchi::Outlook::OlEditorType - Module representing the OlEditorType enumeration.
+Rinchi::Outlook::OlEditorType - Module representing the OlEditorType enumeration. 
 
-=head1 DESCRIPTION of OlEditorType
+=head1 CONSTANTS for the OlEditorType enumeration
 
-  
+ olEditorText                              => 1
+ olEditorHTML                              => 2
+ olEditorRTF                               => 3
+ olEditorWord                              => 4
 
 =cut
 
@@ -18557,11 +17616,15 @@ my @_literal_list_OlEditorType = (
 #===============================================================================
 # Rinchi::Outlook::OlEditorType::Literals
 
-=item @Literals = Rinchi::Outlook::OlEditorType::Literals
-  or
-%Literals = Rinchi::Outlook::OlEditorType::Literals
+=head1 METHODS for the OlEditorType enumeration
+
+=head2 @Literals = Rinchi::Outlook::OlEditorType::Literals
 
 Returns an array of literal name-value pairs.
+
+=head2 %Literals = Rinchi::Outlook::OlEditorType::Literals
+
+Returns a hash of literal name-value pairs.
 
 =cut
 
@@ -18580,13 +17643,21 @@ our @ISA = qw();
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of OlExchangeConnectionMode enumeration
 
-Rinchi::Outlook::OlExchangeConnectionMode - Module representing the OlExchangeConnectionMode enumeration.
+Rinchi::Outlook::OlExchangeConnectionMode - Module representing the OlExchangeConnectionMode enumeration. 
 
-=head1 DESCRIPTION of OlExchangeConnectionMode
+=head1 CONSTANTS for the OlExchangeConnectionMode enumeration
 
-  
+ olNoExchange                              => 0
+ olOffline                                 => 100
+ olCachedOffline                           => 200
+ olDisconnected                            => 300
+ olCachedDisconnected                      => 400
+ olCachedConnectedHeaders                  => 500
+ olCachedConnectedDrizzle                  => 600
+ olCachedConnectedFull                     => 700
+ olOnline                                  => 800
 
 =cut
 
@@ -18616,11 +17687,15 @@ my @_literal_list_OlExchangeConnectionMode = (
 #===============================================================================
 # Rinchi::Outlook::OlExchangeConnectionMode::Literals
 
-=item @Literals = Rinchi::Outlook::OlExchangeConnectionMode::Literals
-  or
-%Literals = Rinchi::Outlook::OlExchangeConnectionMode::Literals
+=head1 METHODS for the OlExchangeConnectionMode enumeration
+
+=head2 @Literals = Rinchi::Outlook::OlExchangeConnectionMode::Literals
 
 Returns an array of literal name-value pairs.
+
+=head2 %Literals = Rinchi::Outlook::OlExchangeConnectionMode::Literals
+
+Returns a hash of literal name-value pairs.
 
 =cut
 
@@ -18639,13 +17714,19 @@ our @ISA = qw();
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of OlFlagIcon enumeration
 
-Rinchi::Outlook::OlFlagIcon - Module representing the OlFlagIcon enumeration.
+Rinchi::Outlook::OlFlagIcon - Module representing the OlFlagIcon enumeration. 
 
-=head1 DESCRIPTION of OlFlagIcon
+=head1 CONSTANTS for the OlFlagIcon enumeration
 
-  
+ olNoFlagIcon                              => 0
+ olPurpleFlagIcon                          => 1
+ olOrangeFlagIcon                          => 2
+ olGreenFlagIcon                           => 3
+ olYellowFlagIcon                          => 4
+ olBlueFlagIcon                            => 5
+ olRedFlagIcon                             => 6
 
 =cut
 
@@ -18671,11 +17752,15 @@ my @_literal_list_OlFlagIcon = (
 #===============================================================================
 # Rinchi::Outlook::OlFlagIcon::Literals
 
-=item @Literals = Rinchi::Outlook::OlFlagIcon::Literals
-  or
-%Literals = Rinchi::Outlook::OlFlagIcon::Literals
+=head1 METHODS for the OlFlagIcon enumeration
+
+=head2 @Literals = Rinchi::Outlook::OlFlagIcon::Literals
 
 Returns an array of literal name-value pairs.
+
+=head2 %Literals = Rinchi::Outlook::OlFlagIcon::Literals
+
+Returns a hash of literal name-value pairs.
 
 =cut
 
@@ -18694,13 +17779,15 @@ our @ISA = qw();
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of OlFlagStatus enumeration
 
-Rinchi::Outlook::OlFlagStatus - Module representing the OlFlagStatus enumeration.
+Rinchi::Outlook::OlFlagStatus - Module representing the OlFlagStatus enumeration. 
 
-=head1 DESCRIPTION of OlFlagStatus
+=head1 CONSTANTS for the OlFlagStatus enumeration
 
-  
+ olNoFlag                                  => 0
+ olFlagComplete                            => 1
+ olFlagMarked                              => 2
 
 =cut
 
@@ -18718,11 +17805,15 @@ my @_literal_list_OlFlagStatus = (
 #===============================================================================
 # Rinchi::Outlook::OlFlagStatus::Literals
 
-=item @Literals = Rinchi::Outlook::OlFlagStatus::Literals
-  or
-%Literals = Rinchi::Outlook::OlFlagStatus::Literals
+=head1 METHODS for the OlFlagStatus enumeration
+
+=head2 @Literals = Rinchi::Outlook::OlFlagStatus::Literals
 
 Returns an array of literal name-value pairs.
+
+=head2 %Literals = Rinchi::Outlook::OlFlagStatus::Literals
+
+Returns a hash of literal name-value pairs.
 
 =cut
 
@@ -18741,13 +17832,15 @@ our @ISA = qw();
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of OlFolderDisplayMode enumeration
 
-Rinchi::Outlook::OlFolderDisplayMode - Module representing the OlFolderDisplayMode enumeration.
+Rinchi::Outlook::OlFolderDisplayMode - Module representing the OlFolderDisplayMode enumeration. 
 
-=head1 DESCRIPTION of OlFolderDisplayMode
+=head1 CONSTANTS for the OlFolderDisplayMode enumeration
 
-  
+ olFolderDisplayNormal                     => 0
+ olFolderDisplayFolderOnly                 => 1
+ olFolderDisplayNoNavigation               => 2
 
 =cut
 
@@ -18765,11 +17858,15 @@ my @_literal_list_OlFolderDisplayMode = (
 #===============================================================================
 # Rinchi::Outlook::OlFolderDisplayMode::Literals
 
-=item @Literals = Rinchi::Outlook::OlFolderDisplayMode::Literals
-  or
-%Literals = Rinchi::Outlook::OlFolderDisplayMode::Literals
+=head1 METHODS for the OlFolderDisplayMode enumeration
+
+=head2 @Literals = Rinchi::Outlook::OlFolderDisplayMode::Literals
 
 Returns an array of literal name-value pairs.
+
+=head2 %Literals = Rinchi::Outlook::OlFolderDisplayMode::Literals
+
+Returns a hash of literal name-value pairs.
 
 =cut
 
@@ -18788,13 +17885,16 @@ our @ISA = qw();
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of OlFormRegistry enumeration
 
-Rinchi::Outlook::OlFormRegistry - Module representing the OlFormRegistry enumeration.
+Rinchi::Outlook::OlFormRegistry - Module representing the OlFormRegistry enumeration. 
 
-=head1 DESCRIPTION of OlFormRegistry
+=head1 CONSTANTS for the OlFormRegistry enumeration
 
-  
+ olDefaultRegistry                         => 0
+ olPersonalRegistry                        => 2
+ olFolderRegistry                          => 3
+ olOrganizationRegistry                    => 4
 
 =cut
 
@@ -18814,11 +17914,15 @@ my @_literal_list_OlFormRegistry = (
 #===============================================================================
 # Rinchi::Outlook::OlFormRegistry::Literals
 
-=item @Literals = Rinchi::Outlook::OlFormRegistry::Literals
-  or
-%Literals = Rinchi::Outlook::OlFormRegistry::Literals
+=head1 METHODS for the OlFormRegistry enumeration
+
+=head2 @Literals = Rinchi::Outlook::OlFormRegistry::Literals
 
 Returns an array of literal name-value pairs.
+
+=head2 %Literals = Rinchi::Outlook::OlFormRegistry::Literals
+
+Returns a hash of literal name-value pairs.
 
 =cut
 
@@ -18837,13 +17941,15 @@ our @ISA = qw();
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of OlGender enumeration
 
-Rinchi::Outlook::OlGender - Module representing the OlGender enumeration.
+Rinchi::Outlook::OlGender - Module representing the OlGender enumeration. 
 
-=head1 DESCRIPTION of OlGender
+=head1 CONSTANTS for the OlGender enumeration
 
-  
+ olUnspecified                             => 0
+ olFemale                                  => 1
+ olMale                                    => 2
 
 =cut
 
@@ -18861,11 +17967,15 @@ my @_literal_list_OlGender = (
 #===============================================================================
 # Rinchi::Outlook::OlGender::Literals
 
-=item @Literals = Rinchi::Outlook::OlGender::Literals
-  or
-%Literals = Rinchi::Outlook::OlGender::Literals
+=head1 METHODS for the OlGender enumeration
+
+=head2 @Literals = Rinchi::Outlook::OlGender::Literals
 
 Returns an array of literal name-value pairs.
+
+=head2 %Literals = Rinchi::Outlook::OlGender::Literals
+
+Returns a hash of literal name-value pairs.
 
 =cut
 
@@ -18884,13 +17994,15 @@ our @ISA = qw();
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of OlImportance enumeration
 
-Rinchi::Outlook::OlImportance - Module representing the OlImportance enumeration.
+Rinchi::Outlook::OlImportance - Module representing the OlImportance enumeration. 
 
-=head1 DESCRIPTION of OlImportance
+=head1 CONSTANTS for the OlImportance enumeration
 
-  
+ olImportanceLow                           => 0
+ olImportanceNormal                        => 1
+ olImportanceHigh                          => 2
 
 =cut
 
@@ -18908,11 +18020,15 @@ my @_literal_list_OlImportance = (
 #===============================================================================
 # Rinchi::Outlook::OlImportance::Literals
 
-=item @Literals = Rinchi::Outlook::OlImportance::Literals
-  or
-%Literals = Rinchi::Outlook::OlImportance::Literals
+=head1 METHODS for the OlImportance enumeration
+
+=head2 @Literals = Rinchi::Outlook::OlImportance::Literals
 
 Returns an array of literal name-value pairs.
+
+=head2 %Literals = Rinchi::Outlook::OlImportance::Literals
+
+Returns a hash of literal name-value pairs.
 
 =cut
 
@@ -18931,13 +18047,15 @@ our @ISA = qw();
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of OlInspectorClose enumeration
 
-Rinchi::Outlook::OlInspectorClose - Module representing the OlInspectorClose enumeration.
+Rinchi::Outlook::OlInspectorClose - Module representing the OlInspectorClose enumeration. 
 
-=head1 DESCRIPTION of OlInspectorClose
+=head1 CONSTANTS for the OlInspectorClose enumeration
 
-  
+ olSave                                    => 0
+ olDiscard                                 => 1
+ olPromptForSave                           => 2
 
 =cut
 
@@ -18955,11 +18073,15 @@ my @_literal_list_OlInspectorClose = (
 #===============================================================================
 # Rinchi::Outlook::OlInspectorClose::Literals
 
-=item @Literals = Rinchi::Outlook::OlInspectorClose::Literals
-  or
-%Literals = Rinchi::Outlook::OlInspectorClose::Literals
+=head1 METHODS for the OlInspectorClose enumeration
+
+=head2 @Literals = Rinchi::Outlook::OlInspectorClose::Literals
 
 Returns an array of literal name-value pairs.
+
+=head2 %Literals = Rinchi::Outlook::OlInspectorClose::Literals
+
+Returns a hash of literal name-value pairs.
 
 =cut
 
@@ -18978,13 +18100,20 @@ our @ISA = qw();
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of OlItemType enumeration
 
-Rinchi::Outlook::OlItemType - Module representing the OlItemType enumeration.
+Rinchi::Outlook::OlItemType - Module representing the OlItemType enumeration. 
 
-=head1 DESCRIPTION of OlItemType
+=head1 CONSTANTS for the OlItemType enumeration
 
-  
+ olMailItem                                => 0
+ olAppointmentItem                         => 1
+ olContactItem                             => 2
+ olTaskItem                                => 3
+ olJournalItem                             => 4
+ olNoteItem                                => 5
+ olPostItem                                => 6
+ olDistributionListItem                    => 7
 
 =cut
 
@@ -19012,11 +18141,15 @@ my @_literal_list_OlItemType = (
 #===============================================================================
 # Rinchi::Outlook::OlItemType::Literals
 
-=item @Literals = Rinchi::Outlook::OlItemType::Literals
-  or
-%Literals = Rinchi::Outlook::OlItemType::Literals
+=head1 METHODS for the OlItemType enumeration
+
+=head2 @Literals = Rinchi::Outlook::OlItemType::Literals
 
 Returns an array of literal name-value pairs.
+
+=head2 %Literals = Rinchi::Outlook::OlItemType::Literals
+
+Returns a hash of literal name-value pairs.
 
 =cut
 
@@ -19035,13 +18168,13 @@ our @ISA = qw();
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of OlJournalRecipientType enumeration
 
-Rinchi::Outlook::OlJournalRecipientType - Module representing the OlJournalRecipientType enumeration.
+Rinchi::Outlook::OlJournalRecipientType - Module representing the OlJournalRecipientType enumeration. 
 
-=head1 DESCRIPTION of OlJournalRecipientType
+=head1 CONSTANTS for the OlJournalRecipientType enumeration
 
-  
+ olAssociatedContact                       => 1
 
 =cut
 
@@ -19055,11 +18188,15 @@ my @_literal_list_OlJournalRecipientType = (
 #===============================================================================
 # Rinchi::Outlook::OlJournalRecipientType::Literals
 
-=item @Literals = Rinchi::Outlook::OlJournalRecipientType::Literals
-  or
-%Literals = Rinchi::Outlook::OlJournalRecipientType::Literals
+=head1 METHODS for the OlJournalRecipientType enumeration
+
+=head2 @Literals = Rinchi::Outlook::OlJournalRecipientType::Literals
 
 Returns an array of literal name-value pairs.
+
+=head2 %Literals = Rinchi::Outlook::OlJournalRecipientType::Literals
+
+Returns a hash of literal name-value pairs.
 
 =cut
 
@@ -19078,13 +18215,16 @@ our @ISA = qw();
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of OlMailRecipientType enumeration
 
-Rinchi::Outlook::OlMailRecipientType - Module representing the OlMailRecipientType enumeration.
+Rinchi::Outlook::OlMailRecipientType - Module representing the OlMailRecipientType enumeration. 
 
-=head1 DESCRIPTION of OlMailRecipientType
+=head1 CONSTANTS for the OlMailRecipientType enumeration
 
-  
+ olOriginator                              => 0
+ olTo                                      => 1
+ olCC                                      => 2
+ olBCC                                     => 3
 
 =cut
 
@@ -19104,11 +18244,15 @@ my @_literal_list_OlMailRecipientType = (
 #===============================================================================
 # Rinchi::Outlook::OlMailRecipientType::Literals
 
-=item @Literals = Rinchi::Outlook::OlMailRecipientType::Literals
-  or
-%Literals = Rinchi::Outlook::OlMailRecipientType::Literals
+=head1 METHODS for the OlMailRecipientType enumeration
+
+=head2 @Literals = Rinchi::Outlook::OlMailRecipientType::Literals
 
 Returns an array of literal name-value pairs.
+
+=head2 %Literals = Rinchi::Outlook::OlMailRecipientType::Literals
+
+Returns a hash of literal name-value pairs.
 
 =cut
 
@@ -19127,13 +18271,16 @@ our @ISA = qw();
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of OlMailingAddress enumeration
 
-Rinchi::Outlook::OlMailingAddress - Module representing the OlMailingAddress enumeration.
+Rinchi::Outlook::OlMailingAddress - Module representing the OlMailingAddress enumeration. 
 
-=head1 DESCRIPTION of OlMailingAddress
+=head1 CONSTANTS for the OlMailingAddress enumeration
 
-  
+ olNone                                    => 0
+ olHome                                    => 1
+ olBusiness                                => 2
+ olOther                                   => 3
 
 =cut
 
@@ -19153,11 +18300,15 @@ my @_literal_list_OlMailingAddress = (
 #===============================================================================
 # Rinchi::Outlook::OlMailingAddress::Literals
 
-=item @Literals = Rinchi::Outlook::OlMailingAddress::Literals
-  or
-%Literals = Rinchi::Outlook::OlMailingAddress::Literals
+=head1 METHODS for the OlMailingAddress enumeration
+
+=head2 @Literals = Rinchi::Outlook::OlMailingAddress::Literals
 
 Returns an array of literal name-value pairs.
+
+=head2 %Literals = Rinchi::Outlook::OlMailingAddress::Literals
+
+Returns a hash of literal name-value pairs.
 
 =cut
 
@@ -19176,13 +18327,16 @@ our @ISA = qw();
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of OlMeetingRecipientType enumeration
 
-Rinchi::Outlook::OlMeetingRecipientType - Module representing the OlMeetingRecipientType enumeration.
+Rinchi::Outlook::OlMeetingRecipientType - Module representing the OlMeetingRecipientType enumeration. 
 
-=head1 DESCRIPTION of OlMeetingRecipientType
+=head1 CONSTANTS for the OlMeetingRecipientType enumeration
 
-  
+ olOrganizer                               => 0
+ olRequired                                => 1
+ olOptional                                => 2
+ olResource                                => 3
 
 =cut
 
@@ -19202,11 +18356,15 @@ my @_literal_list_OlMeetingRecipientType = (
 #===============================================================================
 # Rinchi::Outlook::OlMeetingRecipientType::Literals
 
-=item @Literals = Rinchi::Outlook::OlMeetingRecipientType::Literals
-  or
-%Literals = Rinchi::Outlook::OlMeetingRecipientType::Literals
+=head1 METHODS for the OlMeetingRecipientType enumeration
+
+=head2 @Literals = Rinchi::Outlook::OlMeetingRecipientType::Literals
 
 Returns an array of literal name-value pairs.
+
+=head2 %Literals = Rinchi::Outlook::OlMeetingRecipientType::Literals
+
+Returns a hash of literal name-value pairs.
 
 =cut
 
@@ -19225,13 +18383,15 @@ our @ISA = qw();
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of OlMeetingResponse enumeration
 
-Rinchi::Outlook::OlMeetingResponse - Module representing the OlMeetingResponse enumeration.
+Rinchi::Outlook::OlMeetingResponse - Module representing the OlMeetingResponse enumeration. 
 
-=head1 DESCRIPTION of OlMeetingResponse
+=head1 CONSTANTS for the OlMeetingResponse enumeration
 
-  
+ olMeetingTentative                        => 2
+ olMeetingAccepted                         => 3
+ olMeetingDeclined                         => 4
 
 =cut
 
@@ -19249,11 +18409,15 @@ my @_literal_list_OlMeetingResponse = (
 #===============================================================================
 # Rinchi::Outlook::OlMeetingResponse::Literals
 
-=item @Literals = Rinchi::Outlook::OlMeetingResponse::Literals
-  or
-%Literals = Rinchi::Outlook::OlMeetingResponse::Literals
+=head1 METHODS for the OlMeetingResponse enumeration
+
+=head2 @Literals = Rinchi::Outlook::OlMeetingResponse::Literals
 
 Returns an array of literal name-value pairs.
+
+=head2 %Literals = Rinchi::Outlook::OlMeetingResponse::Literals
+
+Returns a hash of literal name-value pairs.
 
 =cut
 
@@ -19272,13 +18436,16 @@ our @ISA = qw();
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of OlMeetingStatus enumeration
 
-Rinchi::Outlook::OlMeetingStatus - Module representing the OlMeetingStatus enumeration.
+Rinchi::Outlook::OlMeetingStatus - Module representing the OlMeetingStatus enumeration. 
 
-=head1 DESCRIPTION of OlMeetingStatus
+=head1 CONSTANTS for the OlMeetingStatus enumeration
 
-  
+ olNonMeeting                              => 0
+ olMeeting                                 => 1
+ olMeetingReceived                         => 3
+ olMeetingCanceled                         => 5
 
 =cut
 
@@ -19298,11 +18465,15 @@ my @_literal_list_OlMeetingStatus = (
 #===============================================================================
 # Rinchi::Outlook::OlMeetingStatus::Literals
 
-=item @Literals = Rinchi::Outlook::OlMeetingStatus::Literals
-  or
-%Literals = Rinchi::Outlook::OlMeetingStatus::Literals
+=head1 METHODS for the OlMeetingStatus enumeration
+
+=head2 @Literals = Rinchi::Outlook::OlMeetingStatus::Literals
 
 Returns an array of literal name-value pairs.
+
+=head2 %Literals = Rinchi::Outlook::OlMeetingStatus::Literals
+
+Returns a hash of literal name-value pairs.
 
 =cut
 
@@ -19321,13 +18492,15 @@ our @ISA = qw();
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of OlNetMeetingType enumeration
 
-Rinchi::Outlook::OlNetMeetingType - Module representing the OlNetMeetingType enumeration.
+Rinchi::Outlook::OlNetMeetingType - Module representing the OlNetMeetingType enumeration. 
 
-=head1 DESCRIPTION of OlNetMeetingType
+=head1 CONSTANTS for the OlNetMeetingType enumeration
 
-  
+ olNetMeeting                              => 0
+ olNetShow                                 => 1
+ olExchangeConferencing                    => 2
 
 =cut
 
@@ -19345,11 +18518,15 @@ my @_literal_list_OlNetMeetingType = (
 #===============================================================================
 # Rinchi::Outlook::OlNetMeetingType::Literals
 
-=item @Literals = Rinchi::Outlook::OlNetMeetingType::Literals
-  or
-%Literals = Rinchi::Outlook::OlNetMeetingType::Literals
+=head1 METHODS for the OlNetMeetingType enumeration
+
+=head2 @Literals = Rinchi::Outlook::OlNetMeetingType::Literals
 
 Returns an array of literal name-value pairs.
+
+=head2 %Literals = Rinchi::Outlook::OlNetMeetingType::Literals
+
+Returns a hash of literal name-value pairs.
 
 =cut
 
@@ -19368,13 +18545,17 @@ our @ISA = qw();
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of OlNoteColor enumeration
 
-Rinchi::Outlook::OlNoteColor - Module representing the OlNoteColor enumeration.
+Rinchi::Outlook::OlNoteColor - Module representing the OlNoteColor enumeration. 
 
-=head1 DESCRIPTION of OlNoteColor
+=head1 CONSTANTS for the OlNoteColor enumeration
 
-  
+ olBlue                                    => 0
+ olGreen                                   => 1
+ olPink                                    => 2
+ olYellow                                  => 3
+ olWhite                                   => 4
 
 =cut
 
@@ -19396,11 +18577,15 @@ my @_literal_list_OlNoteColor = (
 #===============================================================================
 # Rinchi::Outlook::OlNoteColor::Literals
 
-=item @Literals = Rinchi::Outlook::OlNoteColor::Literals
-  or
-%Literals = Rinchi::Outlook::OlNoteColor::Literals
+=head1 METHODS for the OlNoteColor enumeration
+
+=head2 @Literals = Rinchi::Outlook::OlNoteColor::Literals
 
 Returns an array of literal name-value pairs.
+
+=head2 %Literals = Rinchi::Outlook::OlNoteColor::Literals
+
+Returns a hash of literal name-value pairs.
 
 =cut
 
@@ -19419,13 +18604,82 @@ our @ISA = qw();
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of OlObjectClass enumeration
 
-Rinchi::Outlook::OlObjectClass - Module representing the OlObjectClass enumeration.
+Rinchi::Outlook::OlObjectClass - Module representing the OlObjectClass enumeration. 
 
-=head1 DESCRIPTION of OlObjectClass
+=head1 CONSTANTS for the OlObjectClass enumeration
 
-  
+ olApplication                             => 0
+ olNamespace                               => 1
+ olFolder                                  => 2
+ olRecipient                               => 4
+ olAttachment                              => 5
+ olAddressList                             => 7
+ olAddressEntry                            => 8
+ olFolders                                 => 15
+ olItems                                   => 16
+ olRecipients                              => 17
+ olAttachments                             => 18
+ olAddressLists                            => 20
+ olAddressEntries                          => 21
+ olAppointment                             => 26
+ olRecurrencePattern                       => 28
+ olExceptions                              => 29
+ olException                               => 30
+ olAction                                  => 32
+ olActions                                 => 33
+ olExplorer                                => 34
+ olInspector                               => 35
+ olPages                                   => 36
+ olFormDescription                         => 37
+ olUserProperties                          => 38
+ olUserProperty                            => 39
+ olContact                                 => 40
+ olDocument                                => 41
+ olJournal                                 => 42
+ olMail                                    => 43
+ olNote                                    => 44
+ olPost                                    => 45
+ olReport                                  => 46
+ olRemote                                  => 47
+ olTask                                    => 48
+ olTaskRequest                             => 49
+ olTaskRequestUpdate                       => 50
+ olTaskRequestAccept                       => 51
+ olTaskRequestDecline                      => 52
+ olMeetingRequest                          => 53
+ olMeetingCancellation                     => 54
+ olMeetingResponseNegative                 => 55
+ olMeetingResponsePositive                 => 56
+ olMeetingResponseTentative                => 57
+ olExplorers                               => 60
+ olInspectors                              => 61
+ olPanes                                   => 62
+ olOutlookBarPane                          => 63
+ olOutlookBarStorage                       => 64
+ olOutlookBarGroups                        => 65
+ olOutlookBarGroup                         => 66
+ olOutlookBarShortcuts                     => 67
+ olOutlookBarShortcut                      => 68
+ olDistributionList                        => 69
+ olPropertyPageSite                        => 70
+ olPropertyPages                           => 71
+ olSyncObject                              => 72
+ olSyncObjects                             => 73
+ olSelection                               => 74
+ olLink                                    => 75
+ olLinks                                   => 76
+ olSearch                                  => 77
+ olResults                                 => 78
+ olViews                                   => 79
+ olView                                    => 80
+ olItemProperties                          => 98
+ olItemProperty                            => 99
+ olReminders                               => 100
+ olReminder                                => 101
+ olConflict                                => 102
+ olConflicts                               => 103
 
 =cut
 
@@ -19504,15 +18758,15 @@ Rinchi::Outlook::OlObjectClass - Module representing the OlObjectClass enumerati
 my @_literal_list_OlObjectClass = (
   'olApplication'                             => 0,
   'olNamespace'                               => 1,
-  'olReminders'                               => 100,
-  'olReminder'                                => 101,
-  'olConflict'                                => 102,
-  'olConflicts'                               => 103,
+  'olFolder'                                  => 2,
+  'olRecipient'                               => 4,
+  'olAttachment'                              => 5,
+  'olAddressList'                             => 7,
+  'olAddressEntry'                            => 8,
   'olFolders'                                 => 15,
   'olItems'                                   => 16,
   'olRecipients'                              => 17,
   'olAttachments'                             => 18,
-  'olFolder'                                  => 2,
   'olAddressLists'                            => 20,
   'olAddressEntries'                          => 21,
   'olAppointment'                             => 26,
@@ -19527,7 +18781,6 @@ my @_literal_list_OlObjectClass = (
   'olFormDescription'                         => 37,
   'olUserProperties'                          => 38,
   'olUserProperty'                            => 39,
-  'olRecipient'                               => 4,
   'olContact'                                 => 40,
   'olDocument'                                => 41,
   'olJournal'                                 => 42,
@@ -19538,7 +18791,6 @@ my @_literal_list_OlObjectClass = (
   'olRemote'                                  => 47,
   'olTask'                                    => 48,
   'olTaskRequest'                             => 49,
-  'olAttachment'                              => 5,
   'olTaskRequestUpdate'                       => 50,
   'olTaskRequestAccept'                       => 51,
   'olTaskRequestDecline'                      => 52,
@@ -19557,7 +18809,6 @@ my @_literal_list_OlObjectClass = (
   'olOutlookBarShortcuts'                     => 67,
   'olOutlookBarShortcut'                      => 68,
   'olDistributionList'                        => 69,
-  'olAddressList'                             => 7,
   'olPropertyPageSite'                        => 70,
   'olPropertyPages'                           => 71,
   'olSyncObject'                              => 72,
@@ -19568,20 +18819,27 @@ my @_literal_list_OlObjectClass = (
   'olSearch'                                  => 77,
   'olResults'                                 => 78,
   'olViews'                                   => 79,
-  'olAddressEntry'                            => 8,
   'olView'                                    => 80,
   'olItemProperties'                          => 98,
   'olItemProperty'                            => 99,
+  'olReminders'                               => 100,
+  'olReminder'                                => 101,
+  'olConflict'                                => 102,
+  'olConflicts'                               => 103,
 );
 
 #===============================================================================
 # Rinchi::Outlook::OlObjectClass::Literals
 
-=item @Literals = Rinchi::Outlook::OlObjectClass::Literals
-  or
-%Literals = Rinchi::Outlook::OlObjectClass::Literals
+=head1 METHODS for the OlObjectClass enumeration
+
+=head2 @Literals = Rinchi::Outlook::OlObjectClass::Literals
 
 Returns an array of literal name-value pairs.
+
+=head2 %Literals = Rinchi::Outlook::OlObjectClass::Literals
+
+Returns a hash of literal name-value pairs.
 
 =cut
 
@@ -19600,13 +18858,15 @@ our @ISA = qw();
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of OlOfficeDocItemsType enumeration
 
-Rinchi::Outlook::OlOfficeDocItemsType - Module representing the OlOfficeDocItemsType enumeration.
+Rinchi::Outlook::OlOfficeDocItemsType - Module representing the OlOfficeDocItemsType enumeration. 
 
-=head1 DESCRIPTION of OlOfficeDocItemsType
+=head1 CONSTANTS for the OlOfficeDocItemsType enumeration
 
-  
+ olPowerPointShowItem                      => 10
+ olExcelWorkSheetItem                      => 8
+ olWordDocumentItem                        => 9
 
 =cut
 
@@ -19624,11 +18884,15 @@ my @_literal_list_OlOfficeDocItemsType = (
 #===============================================================================
 # Rinchi::Outlook::OlOfficeDocItemsType::Literals
 
-=item @Literals = Rinchi::Outlook::OlOfficeDocItemsType::Literals
-  or
-%Literals = Rinchi::Outlook::OlOfficeDocItemsType::Literals
+=head1 METHODS for the OlOfficeDocItemsType enumeration
+
+=head2 @Literals = Rinchi::Outlook::OlOfficeDocItemsType::Literals
 
 Returns an array of literal name-value pairs.
+
+=head2 %Literals = Rinchi::Outlook::OlOfficeDocItemsType::Literals
+
+Returns a hash of literal name-value pairs.
 
 =cut
 
@@ -19647,13 +18911,14 @@ our @ISA = qw();
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of OlOutlookBarViewType enumeration
 
-Rinchi::Outlook::OlOutlookBarViewType - Module representing the OlOutlookBarViewType enumeration.
+Rinchi::Outlook::OlOutlookBarViewType - Module representing the OlOutlookBarViewType enumeration. 
 
-=head1 DESCRIPTION of OlOutlookBarViewType
+=head1 CONSTANTS for the OlOutlookBarViewType enumeration
 
-  
+ olLargeIcon                               => 0
+ olSmallIcon                               => 1
 
 =cut
 
@@ -19669,11 +18934,15 @@ my @_literal_list_OlOutlookBarViewType = (
 #===============================================================================
 # Rinchi::Outlook::OlOutlookBarViewType::Literals
 
-=item @Literals = Rinchi::Outlook::OlOutlookBarViewType::Literals
-  or
-%Literals = Rinchi::Outlook::OlOutlookBarViewType::Literals
+=head1 METHODS for the OlOutlookBarViewType enumeration
+
+=head2 @Literals = Rinchi::Outlook::OlOutlookBarViewType::Literals
 
 Returns an array of literal name-value pairs.
+
+=head2 %Literals = Rinchi::Outlook::OlOutlookBarViewType::Literals
+
+Returns a hash of literal name-value pairs.
 
 =cut
 
@@ -19692,13 +18961,16 @@ our @ISA = qw();
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of OlPane enumeration
 
-Rinchi::Outlook::OlPane - Module representing the OlPane enumeration.
+Rinchi::Outlook::OlPane - Module representing the OlPane enumeration. 
 
-=head1 DESCRIPTION of OlPane
+=head1 CONSTANTS for the OlPane enumeration
 
-  
+ olOutlookBar                              => 1
+ olFolderList                              => 2
+ olPreview                                 => 3
+ olNavigationPane                          => 4
 
 =cut
 
@@ -19718,11 +18990,15 @@ my @_literal_list_OlPane = (
 #===============================================================================
 # Rinchi::Outlook::OlPane::Literals
 
-=item @Literals = Rinchi::Outlook::OlPane::Literals
-  or
-%Literals = Rinchi::Outlook::OlPane::Literals
+=head1 METHODS for the OlPane enumeration
+
+=head2 @Literals = Rinchi::Outlook::OlPane::Literals
 
 Returns an array of literal name-value pairs.
+
+=head2 %Literals = Rinchi::Outlook::OlPane::Literals
+
+Returns a hash of literal name-value pairs.
 
 =cut
 
@@ -19741,13 +19017,15 @@ our @ISA = qw();
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of OlPermission enumeration
 
-Rinchi::Outlook::OlPermission - Module representing the OlPermission enumeration.
+Rinchi::Outlook::OlPermission - Module representing the OlPermission enumeration. 
 
-=head1 DESCRIPTION of OlPermission
+=head1 CONSTANTS for the OlPermission enumeration
 
-  
+ olUnrestricted                            => 0
+ olDoNotForward                            => 1
+ olPermissionTemplate                      => 2
 
 =cut
 
@@ -19765,11 +19043,15 @@ my @_literal_list_OlPermission = (
 #===============================================================================
 # Rinchi::Outlook::OlPermission::Literals
 
-=item @Literals = Rinchi::Outlook::OlPermission::Literals
-  or
-%Literals = Rinchi::Outlook::OlPermission::Literals
+=head1 METHODS for the OlPermission enumeration
+
+=head2 @Literals = Rinchi::Outlook::OlPermission::Literals
 
 Returns an array of literal name-value pairs.
+
+=head2 %Literals = Rinchi::Outlook::OlPermission::Literals
+
+Returns a hash of literal name-value pairs.
 
 =cut
 
@@ -19788,13 +19070,15 @@ our @ISA = qw();
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of OlPermissionService enumeration
 
-Rinchi::Outlook::OlPermissionService - Module representing the OlPermissionService enumeration.
+Rinchi::Outlook::OlPermissionService - Module representing the OlPermissionService enumeration. 
 
-=head1 DESCRIPTION of OlPermissionService
+=head1 CONSTANTS for the OlPermissionService enumeration
 
-  
+ olUnknown                                 => 0
+ olWindows                                 => 1
+ olPassport                                => 2
 
 =cut
 
@@ -19812,11 +19096,15 @@ my @_literal_list_OlPermissionService = (
 #===============================================================================
 # Rinchi::Outlook::OlPermissionService::Literals
 
-=item @Literals = Rinchi::Outlook::OlPermissionService::Literals
-  or
-%Literals = Rinchi::Outlook::OlPermissionService::Literals
+=head1 METHODS for the OlPermissionService enumeration
+
+=head2 @Literals = Rinchi::Outlook::OlPermissionService::Literals
 
 Returns an array of literal name-value pairs.
+
+=head2 %Literals = Rinchi::Outlook::OlPermissionService::Literals
+
+Returns a hash of literal name-value pairs.
 
 =cut
 
@@ -19835,13 +19123,16 @@ our @ISA = qw();
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of OlRecurrenceState enumeration
 
-Rinchi::Outlook::OlRecurrenceState - Module representing the OlRecurrenceState enumeration.
+Rinchi::Outlook::OlRecurrenceState - Module representing the OlRecurrenceState enumeration. 
 
-=head1 DESCRIPTION of OlRecurrenceState
+=head1 CONSTANTS for the OlRecurrenceState enumeration
 
-  
+ olApptNotRecurring                        => 0
+ olApptMaster                              => 1
+ olApptOccurrence                          => 2
+ olApptException                           => 3
 
 =cut
 
@@ -19861,11 +19152,15 @@ my @_literal_list_OlRecurrenceState = (
 #===============================================================================
 # Rinchi::Outlook::OlRecurrenceState::Literals
 
-=item @Literals = Rinchi::Outlook::OlRecurrenceState::Literals
-  or
-%Literals = Rinchi::Outlook::OlRecurrenceState::Literals
+=head1 METHODS for the OlRecurrenceState enumeration
+
+=head2 @Literals = Rinchi::Outlook::OlRecurrenceState::Literals
 
 Returns an array of literal name-value pairs.
+
+=head2 %Literals = Rinchi::Outlook::OlRecurrenceState::Literals
+
+Returns a hash of literal name-value pairs.
 
 =cut
 
@@ -19884,13 +19179,18 @@ our @ISA = qw();
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of OlRecurrenceType enumeration
 
-Rinchi::Outlook::OlRecurrenceType - Module representing the OlRecurrenceType enumeration.
+Rinchi::Outlook::OlRecurrenceType - Module representing the OlRecurrenceType enumeration. 
 
-=head1 DESCRIPTION of OlRecurrenceType
+=head1 CONSTANTS for the OlRecurrenceType enumeration
 
-  
+ olRecursDaily                             => 0
+ olRecursWeekly                            => 1
+ olRecursMonthly                           => 2
+ olRecursMonthNth                          => 3
+ olRecursYearly                            => 5
+ olRecursYearNth                           => 6
 
 =cut
 
@@ -19914,11 +19214,15 @@ my @_literal_list_OlRecurrenceType = (
 #===============================================================================
 # Rinchi::Outlook::OlRecurrenceType::Literals
 
-=item @Literals = Rinchi::Outlook::OlRecurrenceType::Literals
-  or
-%Literals = Rinchi::Outlook::OlRecurrenceType::Literals
+=head1 METHODS for the OlRecurrenceType enumeration
+
+=head2 @Literals = Rinchi::Outlook::OlRecurrenceType::Literals
 
 Returns an array of literal name-value pairs.
+
+=head2 %Literals = Rinchi::Outlook::OlRecurrenceType::Literals
+
+Returns a hash of literal name-value pairs.
 
 =cut
 
@@ -19937,13 +19241,17 @@ our @ISA = qw();
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of OlRemoteStatus enumeration
 
-Rinchi::Outlook::OlRemoteStatus - Module representing the OlRemoteStatus enumeration.
+Rinchi::Outlook::OlRemoteStatus - Module representing the OlRemoteStatus enumeration. 
 
-=head1 DESCRIPTION of OlRemoteStatus
+=head1 CONSTANTS for the OlRemoteStatus enumeration
 
-  
+ olRemoteStatusNone                        => 0
+ olUnMarked                                => 1
+ olMarkedForDownload                       => 2
+ olMarkedForCopy                           => 3
+ olMarkedForDelete                         => 4
 
 =cut
 
@@ -19965,11 +19273,15 @@ my @_literal_list_OlRemoteStatus = (
 #===============================================================================
 # Rinchi::Outlook::OlRemoteStatus::Literals
 
-=item @Literals = Rinchi::Outlook::OlRemoteStatus::Literals
-  or
-%Literals = Rinchi::Outlook::OlRemoteStatus::Literals
+=head1 METHODS for the OlRemoteStatus enumeration
+
+=head2 @Literals = Rinchi::Outlook::OlRemoteStatus::Literals
 
 Returns an array of literal name-value pairs.
+
+=head2 %Literals = Rinchi::Outlook::OlRemoteStatus::Literals
+
+Returns a hash of literal name-value pairs.
 
 =cut
 
@@ -19988,13 +19300,18 @@ our @ISA = qw();
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of OlResponseStatus enumeration
 
-Rinchi::Outlook::OlResponseStatus - Module representing the OlResponseStatus enumeration.
+Rinchi::Outlook::OlResponseStatus - Module representing the OlResponseStatus enumeration. 
 
-=head1 DESCRIPTION of OlResponseStatus
+=head1 CONSTANTS for the OlResponseStatus enumeration
 
-  
+ olResponseNone                            => 0
+ olResponseOrganized                       => 1
+ olResponseTentative                       => 2
+ olResponseAccepted                        => 3
+ olResponseDeclined                        => 4
+ olResponseNotResponded                    => 5
 
 =cut
 
@@ -20018,11 +19335,15 @@ my @_literal_list_OlResponseStatus = (
 #===============================================================================
 # Rinchi::Outlook::OlResponseStatus::Literals
 
-=item @Literals = Rinchi::Outlook::OlResponseStatus::Literals
-  or
-%Literals = Rinchi::Outlook::OlResponseStatus::Literals
+=head1 METHODS for the OlResponseStatus enumeration
+
+=head2 @Literals = Rinchi::Outlook::OlResponseStatus::Literals
 
 Returns an array of literal name-value pairs.
+
+=head2 %Literals = Rinchi::Outlook::OlResponseStatus::Literals
+
+Returns a hash of literal name-value pairs.
 
 =cut
 
@@ -20041,13 +19362,22 @@ our @ISA = qw();
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of OlSaveAsType enumeration
 
-Rinchi::Outlook::OlSaveAsType - Module representing the OlSaveAsType enumeration.
+Rinchi::Outlook::OlSaveAsType - Module representing the OlSaveAsType enumeration. 
 
-=head1 DESCRIPTION of OlSaveAsType
+=head1 CONSTANTS for the OlSaveAsType enumeration
 
-  
+ olTXT                                     => 0
+ olRTF                                     => 1
+ olTemplate                                => 2
+ olMSG                                     => 3
+ olDoc                                     => 4
+ olHTML                                    => 5
+ olVCard                                   => 6
+ olVCal                                    => 7
+ olICal                                    => 8
+ olMSGUnicode                              => 9
 
 =cut
 
@@ -20079,11 +19409,15 @@ my @_literal_list_OlSaveAsType = (
 #===============================================================================
 # Rinchi::Outlook::OlSaveAsType::Literals
 
-=item @Literals = Rinchi::Outlook::OlSaveAsType::Literals
-  or
-%Literals = Rinchi::Outlook::OlSaveAsType::Literals
+=head1 METHODS for the OlSaveAsType enumeration
+
+=head2 @Literals = Rinchi::Outlook::OlSaveAsType::Literals
 
 Returns an array of literal name-value pairs.
+
+=head2 %Literals = Rinchi::Outlook::OlSaveAsType::Literals
+
+Returns a hash of literal name-value pairs.
 
 =cut
 
@@ -20102,13 +19436,16 @@ our @ISA = qw();
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of OlSensitivity enumeration
 
-Rinchi::Outlook::OlSensitivity - Module representing the OlSensitivity enumeration.
+Rinchi::Outlook::OlSensitivity - Module representing the OlSensitivity enumeration. 
 
-=head1 DESCRIPTION of OlSensitivity
+=head1 CONSTANTS for the OlSensitivity enumeration
 
-  
+ olNormal                                  => 0
+ olPersonal                                => 1
+ olPrivate                                 => 2
+ olConfidential                            => 3
 
 =cut
 
@@ -20128,11 +19465,15 @@ my @_literal_list_OlSensitivity = (
 #===============================================================================
 # Rinchi::Outlook::OlSensitivity::Literals
 
-=item @Literals = Rinchi::Outlook::OlSensitivity::Literals
-  or
-%Literals = Rinchi::Outlook::OlSensitivity::Literals
+=head1 METHODS for the OlSensitivity enumeration
+
+=head2 @Literals = Rinchi::Outlook::OlSensitivity::Literals
 
 Returns an array of literal name-value pairs.
+
+=head2 %Literals = Rinchi::Outlook::OlSensitivity::Literals
+
+Returns a hash of literal name-value pairs.
 
 =cut
 
@@ -20151,13 +19492,15 @@ our @ISA = qw();
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of OlShowItemCount enumeration
 
-Rinchi::Outlook::OlShowItemCount - Module representing the OlShowItemCount enumeration.
+Rinchi::Outlook::OlShowItemCount - Module representing the OlShowItemCount enumeration. 
 
-=head1 DESCRIPTION of OlShowItemCount
+=head1 CONSTANTS for the OlShowItemCount enumeration
 
-  
+ olNoItemCount                             => 0
+ olShowUnreadItemCount                     => 1
+ olShowTotalItemCount                      => 2
 
 =cut
 
@@ -20175,11 +19518,15 @@ my @_literal_list_OlShowItemCount = (
 #===============================================================================
 # Rinchi::Outlook::OlShowItemCount::Literals
 
-=item @Literals = Rinchi::Outlook::OlShowItemCount::Literals
-  or
-%Literals = Rinchi::Outlook::OlShowItemCount::Literals
+=head1 METHODS for the OlShowItemCount enumeration
+
+=head2 @Literals = Rinchi::Outlook::OlShowItemCount::Literals
 
 Returns an array of literal name-value pairs.
+
+=head2 %Literals = Rinchi::Outlook::OlShowItemCount::Literals
+
+Returns a hash of literal name-value pairs.
 
 =cut
 
@@ -20198,13 +19545,15 @@ our @ISA = qw();
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of OlSortOrder enumeration
 
-Rinchi::Outlook::OlSortOrder - Module representing the OlSortOrder enumeration.
+Rinchi::Outlook::OlSortOrder - Module representing the OlSortOrder enumeration. 
 
-=head1 DESCRIPTION of OlSortOrder
+=head1 CONSTANTS for the OlSortOrder enumeration
 
-  
+ olSortNone                                => 0
+ olAscending                               => 1
+ olDescending                              => 2
 
 =cut
 
@@ -20222,11 +19571,15 @@ my @_literal_list_OlSortOrder = (
 #===============================================================================
 # Rinchi::Outlook::OlSortOrder::Literals
 
-=item @Literals = Rinchi::Outlook::OlSortOrder::Literals
-  or
-%Literals = Rinchi::Outlook::OlSortOrder::Literals
+=head1 METHODS for the OlSortOrder enumeration
+
+=head2 @Literals = Rinchi::Outlook::OlSortOrder::Literals
 
 Returns an array of literal name-value pairs.
+
+=head2 %Literals = Rinchi::Outlook::OlSortOrder::Literals
+
+Returns a hash of literal name-value pairs.
 
 =cut
 
@@ -20245,13 +19598,15 @@ our @ISA = qw();
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of OlStoreType enumeration
 
-Rinchi::Outlook::OlStoreType - Module representing the OlStoreType enumeration.
+Rinchi::Outlook::OlStoreType - Module representing the OlStoreType enumeration. 
 
-=head1 DESCRIPTION of OlStoreType
+=head1 CONSTANTS for the OlStoreType enumeration
 
-  
+ olStoreDefault                            => 1
+ olStoreUnicode                            => 2
+ olStoreANSI                               => 3
 
 =cut
 
@@ -20269,11 +19624,15 @@ my @_literal_list_OlStoreType = (
 #===============================================================================
 # Rinchi::Outlook::OlStoreType::Literals
 
-=item @Literals = Rinchi::Outlook::OlStoreType::Literals
-  or
-%Literals = Rinchi::Outlook::OlStoreType::Literals
+=head1 METHODS for the OlStoreType enumeration
+
+=head2 @Literals = Rinchi::Outlook::OlStoreType::Literals
 
 Returns an array of literal name-value pairs.
+
+=head2 %Literals = Rinchi::Outlook::OlStoreType::Literals
+
+Returns a hash of literal name-value pairs.
 
 =cut
 
@@ -20292,13 +19651,14 @@ our @ISA = qw();
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of OlSyncState enumeration
 
-Rinchi::Outlook::OlSyncState - Module representing the OlSyncState enumeration.
+Rinchi::Outlook::OlSyncState - Module representing the OlSyncState enumeration. 
 
-=head1 DESCRIPTION of OlSyncState
+=head1 CONSTANTS for the OlSyncState enumeration
 
-  
+ olSyncStopped                             => 0
+ olSyncStarted                             => 1
 
 =cut
 
@@ -20314,11 +19674,15 @@ my @_literal_list_OlSyncState = (
 #===============================================================================
 # Rinchi::Outlook::OlSyncState::Literals
 
-=item @Literals = Rinchi::Outlook::OlSyncState::Literals
-  or
-%Literals = Rinchi::Outlook::OlSyncState::Literals
+=head1 METHODS for the OlSyncState enumeration
+
+=head2 @Literals = Rinchi::Outlook::OlSyncState::Literals
 
 Returns an array of literal name-value pairs.
+
+=head2 %Literals = Rinchi::Outlook::OlSyncState::Literals
+
+Returns a hash of literal name-value pairs.
 
 =cut
 
@@ -20337,13 +19701,16 @@ our @ISA = qw();
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of OlTaskDelegationState enumeration
 
-Rinchi::Outlook::OlTaskDelegationState - Module representing the OlTaskDelegationState enumeration.
+Rinchi::Outlook::OlTaskDelegationState - Module representing the OlTaskDelegationState enumeration. 
 
-=head1 DESCRIPTION of OlTaskDelegationState
+=head1 CONSTANTS for the OlTaskDelegationState enumeration
 
-  
+ olTaskNotDelegated                        => 0
+ olTaskDelegationUnknown                   => 1
+ olTaskDelegationAccepted                  => 2
+ olTaskDelegationDeclined                  => 3
 
 =cut
 
@@ -20363,11 +19730,15 @@ my @_literal_list_OlTaskDelegationState = (
 #===============================================================================
 # Rinchi::Outlook::OlTaskDelegationState::Literals
 
-=item @Literals = Rinchi::Outlook::OlTaskDelegationState::Literals
-  or
-%Literals = Rinchi::Outlook::OlTaskDelegationState::Literals
+=head1 METHODS for the OlTaskDelegationState enumeration
+
+=head2 @Literals = Rinchi::Outlook::OlTaskDelegationState::Literals
 
 Returns an array of literal name-value pairs.
+
+=head2 %Literals = Rinchi::Outlook::OlTaskDelegationState::Literals
+
+Returns a hash of literal name-value pairs.
 
 =cut
 
@@ -20386,13 +19757,15 @@ our @ISA = qw();
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of OlTaskOwnership enumeration
 
-Rinchi::Outlook::OlTaskOwnership - Module representing the OlTaskOwnership enumeration.
+Rinchi::Outlook::OlTaskOwnership - Module representing the OlTaskOwnership enumeration. 
 
-=head1 DESCRIPTION of OlTaskOwnership
+=head1 CONSTANTS for the OlTaskOwnership enumeration
 
-  
+ olNewTask                                 => 0
+ olDelegatedTask                           => 1
+ olOwnTask                                 => 2
 
 =cut
 
@@ -20410,11 +19783,15 @@ my @_literal_list_OlTaskOwnership = (
 #===============================================================================
 # Rinchi::Outlook::OlTaskOwnership::Literals
 
-=item @Literals = Rinchi::Outlook::OlTaskOwnership::Literals
-  or
-%Literals = Rinchi::Outlook::OlTaskOwnership::Literals
+=head1 METHODS for the OlTaskOwnership enumeration
+
+=head2 @Literals = Rinchi::Outlook::OlTaskOwnership::Literals
 
 Returns an array of literal name-value pairs.
+
+=head2 %Literals = Rinchi::Outlook::OlTaskOwnership::Literals
+
+Returns a hash of literal name-value pairs.
 
 =cut
 
@@ -20433,13 +19810,14 @@ our @ISA = qw();
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of OlTaskRecipientType enumeration
 
-Rinchi::Outlook::OlTaskRecipientType - Module representing the OlTaskRecipientType enumeration.
+Rinchi::Outlook::OlTaskRecipientType - Module representing the OlTaskRecipientType enumeration. 
 
-=head1 DESCRIPTION of OlTaskRecipientType
+=head1 CONSTANTS for the OlTaskRecipientType enumeration
 
-  
+ olUpdate                                  => 2
+ olFinalStatus                             => 3
 
 =cut
 
@@ -20455,11 +19833,15 @@ my @_literal_list_OlTaskRecipientType = (
 #===============================================================================
 # Rinchi::Outlook::OlTaskRecipientType::Literals
 
-=item @Literals = Rinchi::Outlook::OlTaskRecipientType::Literals
-  or
-%Literals = Rinchi::Outlook::OlTaskRecipientType::Literals
+=head1 METHODS for the OlTaskRecipientType enumeration
+
+=head2 @Literals = Rinchi::Outlook::OlTaskRecipientType::Literals
 
 Returns an array of literal name-value pairs.
+
+=head2 %Literals = Rinchi::Outlook::OlTaskRecipientType::Literals
+
+Returns a hash of literal name-value pairs.
 
 =cut
 
@@ -20478,13 +19860,16 @@ our @ISA = qw();
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of OlTaskResponse enumeration
 
-Rinchi::Outlook::OlTaskResponse - Module representing the OlTaskResponse enumeration.
+Rinchi::Outlook::OlTaskResponse - Module representing the OlTaskResponse enumeration. 
 
-=head1 DESCRIPTION of OlTaskResponse
+=head1 CONSTANTS for the OlTaskResponse enumeration
 
-  
+ olTaskSimple                              => 0
+ olTaskAssign                              => 1
+ olTaskAccept                              => 2
+ olTaskDecline                             => 3
 
 =cut
 
@@ -20504,11 +19889,15 @@ my @_literal_list_OlTaskResponse = (
 #===============================================================================
 # Rinchi::Outlook::OlTaskResponse::Literals
 
-=item @Literals = Rinchi::Outlook::OlTaskResponse::Literals
-  or
-%Literals = Rinchi::Outlook::OlTaskResponse::Literals
+=head1 METHODS for the OlTaskResponse enumeration
+
+=head2 @Literals = Rinchi::Outlook::OlTaskResponse::Literals
 
 Returns an array of literal name-value pairs.
+
+=head2 %Literals = Rinchi::Outlook::OlTaskResponse::Literals
+
+Returns a hash of literal name-value pairs.
 
 =cut
 
@@ -20527,13 +19916,17 @@ our @ISA = qw();
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of OlTaskStatus enumeration
 
-Rinchi::Outlook::OlTaskStatus - Module representing the OlTaskStatus enumeration.
+Rinchi::Outlook::OlTaskStatus - Module representing the OlTaskStatus enumeration. 
 
-=head1 DESCRIPTION of OlTaskStatus
+=head1 CONSTANTS for the OlTaskStatus enumeration
 
-  
+ olTaskNotStarted                          => 0
+ olTaskInProgress                          => 1
+ olTaskComplete                            => 2
+ olTaskWaiting                             => 3
+ olTaskDeferred                            => 4
 
 =cut
 
@@ -20555,11 +19948,15 @@ my @_literal_list_OlTaskStatus = (
 #===============================================================================
 # Rinchi::Outlook::OlTaskStatus::Literals
 
-=item @Literals = Rinchi::Outlook::OlTaskStatus::Literals
-  or
-%Literals = Rinchi::Outlook::OlTaskStatus::Literals
+=head1 METHODS for the OlTaskStatus enumeration
+
+=head2 @Literals = Rinchi::Outlook::OlTaskStatus::Literals
 
 Returns an array of literal name-value pairs.
+
+=head2 %Literals = Rinchi::Outlook::OlTaskStatus::Literals
+
+Returns a hash of literal name-value pairs.
 
 =cut
 
@@ -20578,13 +19975,20 @@ our @ISA = qw();
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of OlTrackingStatus enumeration
 
-Rinchi::Outlook::OlTrackingStatus - Module representing the OlTrackingStatus enumeration.
+Rinchi::Outlook::OlTrackingStatus - Module representing the OlTrackingStatus enumeration. 
 
-=head1 DESCRIPTION of OlTrackingStatus
+=head1 CONSTANTS for the OlTrackingStatus enumeration
 
-  
+ olTrackingNone                            => 0
+ olTrackingDelivered                       => 1
+ olTrackingNotDelivered                    => 2
+ olTrackingNotRead                         => 3
+ olTrackingRecallFailure                   => 4
+ olTrackingRecallSuccess                   => 5
+ olTrackingRead                            => 6
+ olTrackingReplied                         => 7
 
 =cut
 
@@ -20612,11 +20016,15 @@ my @_literal_list_OlTrackingStatus = (
 #===============================================================================
 # Rinchi::Outlook::OlTrackingStatus::Literals
 
-=item @Literals = Rinchi::Outlook::OlTrackingStatus::Literals
-  or
-%Literals = Rinchi::Outlook::OlTrackingStatus::Literals
+=head1 METHODS for the OlTrackingStatus enumeration
+
+=head2 @Literals = Rinchi::Outlook::OlTrackingStatus::Literals
 
 Returns an array of literal name-value pairs.
+
+=head2 %Literals = Rinchi::Outlook::OlTrackingStatus::Literals
+
+Returns a hash of literal name-value pairs.
 
 =cut
 
@@ -20635,51 +20043,65 @@ our @ISA = qw();
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of OlUserPropertyType enumeration
 
-Rinchi::Outlook::OlUserPropertyType - Module representing the OlUserPropertyType enumeration.
+Rinchi::Outlook::OlUserPropertyType - Module representing the OlUserPropertyType enumeration. 
 
-=head1 DESCRIPTION of OlUserPropertyType
+=head1 CONSTANTS for the OlUserPropertyType enumeration
 
-  
+ olOutlookInternal                         => 0
+ olText                                    => 1
+ olNumber                                  => 3
+ olDateTime                                => 5
+ olYesNo                                   => 6
+ olDuration                                => 7
+ olKeywords                                => 11
+ olPercent                                 => 12
+ olCurrency                                => 14
+ olFormula                                 => 18
+ olCombination                             => 19
 
 =cut
 
 #===============================================================================
   *olOutlookInternal                         = sub { return 0; };
   *olText                                    = sub { return 1; };
+  *olNumber                                  = sub { return 3; };
+  *olDateTime                                = sub { return 5; };
+  *olYesNo                                   = sub { return 6; };
+  *olDuration                                = sub { return 7; };
   *olKeywords                                = sub { return 11; };
   *olPercent                                 = sub { return 12; };
   *olCurrency                                = sub { return 14; };
   *olFormula                                 = sub { return 18; };
   *olCombination                             = sub { return 19; };
-  *olNumber                                  = sub { return 3; };
-  *olDateTime                                = sub { return 5; };
-  *olYesNo                                   = sub { return 6; };
-  *olDuration                                = sub { return 7; };
 
 my @_literal_list_OlUserPropertyType = (
   'olOutlookInternal'                         => 0,
   'olText'                                    => 1,
+  'olNumber'                                  => 3,
+  'olDateTime'                                => 5,
+  'olYesNo'                                   => 6,
+  'olDuration'                                => 7,
   'olKeywords'                                => 11,
   'olPercent'                                 => 12,
   'olCurrency'                                => 14,
   'olFormula'                                 => 18,
   'olCombination'                             => 19,
-  'olNumber'                                  => 3,
-  'olDateTime'                                => 5,
-  'olYesNo'                                   => 6,
-  'olDuration'                                => 7,
 );
 
 #===============================================================================
 # Rinchi::Outlook::OlUserPropertyType::Literals
 
-=item @Literals = Rinchi::Outlook::OlUserPropertyType::Literals
-  or
-%Literals = Rinchi::Outlook::OlUserPropertyType::Literals
+=head1 METHODS for the OlUserPropertyType enumeration
+
+=head2 @Literals = Rinchi::Outlook::OlUserPropertyType::Literals
 
 Returns an array of literal name-value pairs.
+
+=head2 %Literals = Rinchi::Outlook::OlUserPropertyType::Literals
+
+Returns a hash of literal name-value pairs.
 
 =cut
 
@@ -20698,13 +20120,15 @@ our @ISA = qw();
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of OlViewSaveOption enumeration
 
-Rinchi::Outlook::OlViewSaveOption - Module representing the OlViewSaveOption enumeration.
+Rinchi::Outlook::OlViewSaveOption - Module representing the OlViewSaveOption enumeration. 
 
-=head1 DESCRIPTION of OlViewSaveOption
+=head1 CONSTANTS for the OlViewSaveOption enumeration
 
-  
+ olViewSaveOptionThisFolderEveryone        => 0
+ olViewSaveOptionThisFolderOnlyMe          => 1
+ olViewSaveOptionAllFoldersOfType          => 2
 
 =cut
 
@@ -20722,11 +20146,15 @@ my @_literal_list_OlViewSaveOption = (
 #===============================================================================
 # Rinchi::Outlook::OlViewSaveOption::Literals
 
-=item @Literals = Rinchi::Outlook::OlViewSaveOption::Literals
-  or
-%Literals = Rinchi::Outlook::OlViewSaveOption::Literals
+=head1 METHODS for the OlViewSaveOption enumeration
+
+=head2 @Literals = Rinchi::Outlook::OlViewSaveOption::Literals
 
 Returns an array of literal name-value pairs.
+
+=head2 %Literals = Rinchi::Outlook::OlViewSaveOption::Literals
+
+Returns a hash of literal name-value pairs.
 
 =cut
 
@@ -20745,13 +20173,17 @@ our @ISA = qw();
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of OlViewType enumeration
 
-Rinchi::Outlook::OlViewType - Module representing the OlViewType enumeration.
+Rinchi::Outlook::OlViewType - Module representing the OlViewType enumeration. 
 
-=head1 DESCRIPTION of OlViewType
+=head1 CONSTANTS for the OlViewType enumeration
 
-  
+ olTableView                               => 0
+ olCardView                                => 1
+ olCalendarView                            => 2
+ olIconView                                => 3
+ olTimelineView                            => 4
 
 =cut
 
@@ -20773,11 +20205,15 @@ my @_literal_list_OlViewType = (
 #===============================================================================
 # Rinchi::Outlook::OlViewType::Literals
 
-=item @Literals = Rinchi::Outlook::OlViewType::Literals
-  or
-%Literals = Rinchi::Outlook::OlViewType::Literals
+=head1 METHODS for the OlViewType enumeration
+
+=head2 @Literals = Rinchi::Outlook::OlViewType::Literals
 
 Returns an array of literal name-value pairs.
+
+=head2 %Literals = Rinchi::Outlook::OlViewType::Literals
+
+Returns a hash of literal name-value pairs.
 
 =cut
 
@@ -20796,13 +20232,15 @@ our @ISA = qw();
 our @EXPORT = qw();
 our @EXPORT_OK = qw();
 
-=head1 NAME
+=head1 DESCRIPTION of OlWindowState enumeration
 
-Rinchi::Outlook::OlWindowState - Module representing the OlWindowState enumeration.
+Rinchi::Outlook::OlWindowState - Module representing the OlWindowState enumeration. 
 
-=head1 DESCRIPTION of OlWindowState
+=head1 CONSTANTS for the OlWindowState enumeration
 
-  
+ olMaximized                               => 0
+ olMinimized                               => 1
+ olNormalWindow                            => 2
 
 =cut
 
@@ -20820,11 +20258,15 @@ my @_literal_list_OlWindowState = (
 #===============================================================================
 # Rinchi::Outlook::OlWindowState::Literals
 
-=item @Literals = Rinchi::Outlook::OlWindowState::Literals
-  or
-%Literals = Rinchi::Outlook::OlWindowState::Literals
+=head1 METHODS for the OlWindowState enumeration
+
+=head2 @Literals = Rinchi::Outlook::OlWindowState::Literals
 
 Returns an array of literal name-value pairs.
+
+=head2 %Literals = Rinchi::Outlook::OlWindowState::Literals
+
+Returns a hash of literal name-value pairs.
 
 =cut
 
@@ -20844,10 +20286,12 @@ Brian M. Ames, E<lt>bmames@apk.netE<gt>
 =head1 SEE ALSO
 
 L<XML::Parser>.
+L<XML::DOM>.
 
 =head1 COPYRIGHT and LICENSE
 
-Copyright 2008 Brian M. Ames.  This software may be used under the terms of
-the GPL and Artistic licenses, the same as Perl itself.
+This library is free software; you can redistribute it and/or modify
+it under the same terms as Perl itself, either Perl version 5.8.8 or,
+at your option, any later version of Perl 5 you may have available.
 
 =cut
